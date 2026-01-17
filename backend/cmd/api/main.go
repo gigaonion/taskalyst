@@ -1,0 +1,63 @@
+package main
+
+import (
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	
+	"github.com/gigaonion/taskalyst/backend/internal/config"
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
+	ctx := context.Background()
+
+	pool, err := db.NewPool(ctx, cfg.DBURL)
+	if err != nil {
+		log.Fatalf("failed to connect to db: %v", err)
+	}
+	defer pool.Close()
+
+	repo := repository.New(pool)
+	_ = repo //todo
+
+	e := echo.New()
+	
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS()) // 開発用
+
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	go func() {
+		if err := e.Start(":" + cfg.Port); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal("shutting down the server")
+		}
+	}()
+
+	// 終了シグナル
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	
+	// タイムアウト
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
+}
