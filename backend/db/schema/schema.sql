@@ -31,13 +31,13 @@ CREATE TABLE categories(
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(50) NOT NULL,
   root_type root_category_type NOT NULL,
-  color VARCHAR(7) DEFAULT '#808080'
+  color VARCHAR(7) DEFAULT '#808080',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(user_id,name)
 );
 -- project
 CREATE TABLE projects(
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid();
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   title VARCHAR(100) NOT NULL,
@@ -57,13 +57,13 @@ CREATE TABLE tasks(
   due_date TIMESTAMPTZ,
   priority SMALLINT DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   -- for caldav
   calendar_id UUID REFERENCES calendars(id) ON DELETE CASCADE,
   ical_uid VARCHAR(255),
   etag VARCHAR(64),
   sequence INTEGER NOT NULL DEFAULT 0,
-  completed_at TIMESTAMPTZ;
+  completed_at TIMESTAMPTZ
 );
 -- child task
 CREATE TABLE checklist_items(
@@ -124,7 +124,7 @@ CREATE TABLE scheduled_events (
     transparency VARCHAR(20) DEFAULT 'OPAQUE',
     rrule TEXT,
     dtstamp TIMESTAMPTZ DEFAULT NOW(),
-    url TEXT;
+    url TEXT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
