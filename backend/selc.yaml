@@ -1,0 +1,12 @@
+version: "2"
+sql:
+  - schema: "db/schema/"
+    queries: "db/query/"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "repository"
+        out: "internal/infra/repository"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_interface: true
