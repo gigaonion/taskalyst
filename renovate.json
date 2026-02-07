@@ -15,7 +15,7 @@
       "matchManagers": ["gomod"],
       "groupName": "go-dependencies"
     },
-  {
+    {
       "description": "Node.jsのdevDependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
