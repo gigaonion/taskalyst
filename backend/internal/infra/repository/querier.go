@@ -17,11 +17,17 @@ type Querier interface {
 	CreateEvent(ctx context.Context, arg CreateEventParams) (ScheduledEvent, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
 	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
+	CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (TimeEntry, error)
+	CreateTimetableSlot(ctx context.Context, arg CreateTimetableSlotParams) (TimetableSlot, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteChecklistItem(ctx context.Context, id uuid.UUID) error
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) error
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
+	// GROWTHカテゴリの実績のみを日別集計
+	GetGrowthStats(ctx context.Context, arg GetGrowthStatsParams) ([]GetGrowthStatsRow, error)
 	GetProject(ctx context.Context, arg GetProjectParams) (Project, error)
+	// 計測中のエントリ
+	GetRunningTimeEntries(ctx context.Context, userID uuid.UUID) ([]GetRunningTimeEntriesRow, error)
 	GetTask(ctx context.Context, arg GetTaskParams) (Task, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -32,8 +38,12 @@ type Querier interface {
 	ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error)
 	// タスクと同時に、チェックリストの進捗を取得
 	ListTasksWithStats(ctx context.Context, arg ListTasksWithStatsParams) ([]ListTasksWithStatsRow, error)
+	ListTimeEntries(ctx context.Context, arg ListTimeEntriesParams) ([]ListTimeEntriesRow, error)
+	ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]ListTimetableSlotsRow, error)
+	StopTimeEntry(ctx context.Context, arg StopTimeEntryParams) (TimeEntry, error)
 	UpdateChecklistItem(ctx context.Context, arg UpdateChecklistItemParams) (ChecklistItem, error)
 	UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, error)
+	UpdateTimeEntry(ctx context.Context, arg UpdateTimeEntryParams) (TimeEntry, error)
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (User, error)
 }
 

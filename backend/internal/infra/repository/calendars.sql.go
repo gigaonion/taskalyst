@@ -120,6 +120,48 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Sched
 	return i, err
 }
 
+const createTimetableSlot = `-- name: CreateTimetableSlot :one
+INSERT INTO timetable_slots (
+    user_id, project_id, day_of_week, start_time, end_time, location, note
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, user_id, project_id, day_of_week, start_time, end_time, note, location
+`
+
+type CreateTimetableSlotParams struct {
+	UserID    uuid.UUID   `json:"user_id"`
+	ProjectID uuid.UUID   `json:"project_id"`
+	DayOfWeek int16       `json:"day_of_week"`
+	StartTime pgtype.Time `json:"start_time"`
+	EndTime   pgtype.Time `json:"end_time"`
+	Location  pgtype.Text `json:"location"`
+	Note      pgtype.Text `json:"note"`
+}
+
+func (q *Queries) CreateTimetableSlot(ctx context.Context, arg CreateTimetableSlotParams) (TimetableSlot, error) {
+	row := q.db.QueryRow(ctx, createTimetableSlot,
+		arg.UserID,
+		arg.ProjectID,
+		arg.DayOfWeek,
+		arg.StartTime,
+		arg.EndTime,
+		arg.Location,
+		arg.Note,
+	)
+	var i TimetableSlot
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ProjectID,
+		&i.DayOfWeek,
+		&i.StartTime,
+		&i.EndTime,
+		&i.Note,
+		&i.Location,
+	)
+	return i, err
+}
+
 const getEventByICalUID = `-- name: GetEventByICalUID :one
 SELECT id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at FROM scheduled_events
 WHERE user_id = $1 AND ical_uid = $2 LIMIT 1
@@ -271,6 +313,58 @@ func (q *Queries) ListEventsByRange(ctx context.Context, arg ListEventsByRangePa
 			&i.UpdatedAt,
 			&i.ProjectTitle,
 			&i.CategoryID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTimetableSlots = `-- name: ListTimetableSlots :many
+SELECT ts.id, ts.user_id, ts.project_id, ts.day_of_week, ts.start_time, ts.end_time, ts.note, ts.location, p.title as project_title, p.color as project_color
+FROM timetable_slots ts
+JOIN projects p ON ts.project_id = p.id
+WHERE ts.user_id = $1
+ORDER BY ts.day_of_week, ts.start_time
+`
+
+type ListTimetableSlotsRow struct {
+	ID           uuid.UUID   `json:"id"`
+	UserID       uuid.UUID   `json:"user_id"`
+	ProjectID    uuid.UUID   `json:"project_id"`
+	DayOfWeek    int16       `json:"day_of_week"`
+	StartTime    pgtype.Time `json:"start_time"`
+	EndTime      pgtype.Time `json:"end_time"`
+	Note         pgtype.Text `json:"note"`
+	Location     pgtype.Text `json:"location"`
+	ProjectTitle string      `json:"project_title"`
+	ProjectColor pgtype.Text `json:"project_color"`
+}
+
+func (q *Queries) ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]ListTimetableSlotsRow, error) {
+	rows, err := q.db.Query(ctx, listTimetableSlots, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTimetableSlotsRow
+	for rows.Next() {
+		var i ListTimetableSlotsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.DayOfWeek,
+			&i.StartTime,
+			&i.EndTime,
+			&i.Note,
+			&i.Location,
+			&i.ProjectTitle,
+			&i.ProjectColor,
 		); err != nil {
 			return nil, err
 		}

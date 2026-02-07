@@ -36,3 +36,16 @@ ORDER BY e.start_at ASC;
 -- name: GetEventByICalUID :one
 SELECT * FROM scheduled_events
 WHERE user_id = $1 AND ical_uid = $2 LIMIT 1;
+-- name: CreateTimetableSlot :one
+INSERT INTO timetable_slots (
+    user_id, project_id, day_of_week, start_time, end_time, location, note
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING *;
+
+-- name: ListTimetableSlots :many
+SELECT ts.*, p.title as project_title, p.color as project_color
+FROM timetable_slots ts
+JOIN projects p ON ts.project_id = p.id
+WHERE ts.user_id = $1
+ORDER BY ts.day_of_week, ts.start_time;
