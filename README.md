@@ -1,5 +1,6 @@
 # Taskalyst
 The Catalyst for Task Management
+
 ![Go](https://img.shields.io/badge/Backend-Go-00ADD8?style=flat-square&logo=go)
 ![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&style=for-the-badge)
