@@ -37,9 +37,11 @@ func main() {
 	userHandler := handler.NewUserHandler(userUsecase)
 	projectUsecase := usecase.NewProjectUsecase(repo)
   projectHandler := handler.NewProjectHandler(projectUsecase)
+	taskUsecase := usecase.NewTaskUsecase(repo)
+	taskHandler := handler.NewTaskHandler(taskUsecase)
 
 	e := echo.New()
-  handler.RegisterRoutes(e, userHandler, projectHandler, cfg)
+  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,cfg)
 	
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())

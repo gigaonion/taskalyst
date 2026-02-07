@@ -6,7 +6,7 @@ import (
 	"github.com/gigaonion/taskalyst/backend/internal/handler/middleware"
 )
 
-func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, cfg *config.Config) {
+func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler,cfg *config.Config) {
 	// Auth Group
 	authGroup := e.Group("/auth")
 	authGroup.POST("/signup", userHandler.SignUp)
@@ -21,4 +21,11 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 
   api.POST("/projects", projectHandler.CreateProject)
   api.GET("/projects", projectHandler.ListProjects)
+
+	api.POST("/tasks", taskHandler.CreateTask)
+	api.GET("/tasks", taskHandler.ListTasks)
+	api.PATCH("/tasks/:id/status", taskHandler.UpdateTaskStatus)
+
+	api.POST("/tasks/:id/checklist", taskHandler.AddChecklistItem)
+	api.PATCH("/checklist-items/:id", taskHandler.ToggleChecklistItem)
 }
