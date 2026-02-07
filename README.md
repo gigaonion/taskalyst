@@ -1,5 +1,6 @@
 # Taskalyst
 The Catalyst for Task Management
+
 ![Go](https://img.shields.io/badge/Backend-Go-00ADD8?style=flat-square&logo=go)
 ![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white&style=for-the-badge)
@@ -12,7 +13,7 @@ Taskalystは学生向けのセルフホスト型タスク管理・タイムト�
 * プロジェクトベース: タイムトラッキング，タスクは全てプロジェクト単位で行うため，何に時間を費やしたかを明確にできる．
 * 自動化: 講義や予定表の記録を自動化する．
 * 可視化: スキルアップに費やした時間をGitHubのContributionのように可視化し，モチベーションを維持する．
-* クラウド非依存: 全てのデータはSelf-hostedに置く．外部APIへの依存を排除し，永続的な利用を目指す．
+* クラウド非依存: 全てのデータはSelf-hosted環境に置く．外部APIへの依存を排除し，永続的な利用を目指す．
 * API: 外部システムとの連携用に，Personal Access Tokenを発行可能．蓄積されたログをJSON形式でエクスポートし自作のツールなどで可視化できる．
 
 ## 3. インストール
