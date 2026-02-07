@@ -39,8 +39,10 @@ func (h *ProjectHandler) CreateCategory(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
-	// RootTypeのキャスト
-	// Todo: ライブラリでチェック
+	// バリデーション
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
 	rootType := repository.RootCategoryType(req.RootType)
 
 	category, err := h.u.CreateCategory(c.Request().Context(), userID, req.Name, rootType, req.Color)

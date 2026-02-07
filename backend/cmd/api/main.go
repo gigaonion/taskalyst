@@ -11,6 +11,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/gigaonion/taskalyst/backend/pkg/customvalidator"
 	"github.com/gigaonion/taskalyst/backend/internal/config"
 	"github.com/gigaonion/taskalyst/backend/internal/handler"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
@@ -46,6 +48,7 @@ func main() {
 	calendarHandler := handler.NewCalendarHandler(calendarUsecase)
 
 	e := echo.New()
+	e.Validator = &validator.CustomValidator{Validator: validator.New()} //バリデータを登録
   handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg,calendarHandler,repo)
 	
 	e.Use(middleware.RequestLogger())
