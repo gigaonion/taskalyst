@@ -143,6 +143,9 @@ CREATE TABLE time_entries (
     ended_at TIMESTAMPTZ,
     note TEXT,
     is_auto_generated BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
     CONSTRAINT valid_duration CHECK (ended_at IS NULL OR ended_at > started_at)
 );
