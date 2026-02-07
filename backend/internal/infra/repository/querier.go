@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CreateApiToken(ctx context.Context, arg CreateApiTokenParams) (ApiToken, error)
 	CreateCalendar(ctx context.Context, arg CreateCalendarParams) (Calendar, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	CreateChecklistItem(ctx context.Context, arg CreateChecklistItemParams) (ChecklistItem, error)
@@ -20,6 +21,7 @@ type Querier interface {
 	CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (TimeEntry, error)
 	CreateTimetableSlot(ctx context.Context, arg CreateTimetableSlotParams) (TimetableSlot, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteApiToken(ctx context.Context, arg DeleteApiTokenParams) error
 	DeleteChecklistItem(ctx context.Context, id uuid.UUID) error
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) error
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
@@ -31,6 +33,8 @@ type Querier interface {
 	GetTask(ctx context.Context, arg GetTaskParams) (Task, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByTokenHash(ctx context.Context, tokenHash string) (User, error)
+	ListApiTokens(ctx context.Context, userID uuid.UUID) ([]ListApiTokensRow, error)
 	ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calendar, error)
 	ListCategories(ctx context.Context, userID uuid.UUID) ([]Category, error)
 	ListChecklistItems(ctx context.Context, taskID uuid.UUID) ([]ChecklistItem, error)

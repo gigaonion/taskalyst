@@ -41,9 +41,10 @@ func main() {
 	taskHandler := handler.NewTaskHandler(taskUsecase)
 	timeUsecase := usecase.NewTimeUsecase(repo)
   timeHandler := handler.NewTimeHandler(timeUsecase)
+	apiTokenHandler := handler.NewApiTokenHandler(repo)
 
 	e := echo.New()
-  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,cfg)
+  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg)
 	
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
