@@ -48,7 +48,7 @@ func main() {
 	calendarHandler := handler.NewCalendarHandler(calendarUsecase)
 
 	e := echo.New()
-	e.Validator = &validator.CustomValidator{Validator: validator.New()} //バリデータを登録
+	e.Validator = &customvalidator.CustomValidator{Validator: validator.New()} //バリデータを登録
   handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg,calendarHandler,repo)
 	
 	e.Use(middleware.RequestLogger())
