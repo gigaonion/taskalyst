@@ -8,7 +8,7 @@ package repository
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -73,7 +73,7 @@ SELECT id, email, password_hash, name, role, preferences, created_at, updated_at
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
@@ -99,8 +99,8 @@ RETURNING id, email, password_hash, name, role, preferences, created_at, updated
 `
 
 type UpdateUserPreferencesParams struct {
-	ID          pgtype.UUID `json:"id"`
-	Preferences []byte      `json:"preferences"`
+	ID          uuid.UUID `json:"id"`
+	Preferences []byte    `json:"preferences"`
 }
 
 func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (User, error) {

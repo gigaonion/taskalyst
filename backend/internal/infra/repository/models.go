@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -142,8 +143,8 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 }
 
 type ApiToken struct {
-	ID        pgtype.UUID        `json:"id"`
-	UserID    pgtype.UUID        `json:"user_id"`
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
 	Name      string             `json:"name"`
 	TokenHash string             `json:"token_hash"`
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
@@ -151,8 +152,8 @@ type ApiToken struct {
 }
 
 type Calendar struct {
-	ID                  pgtype.UUID        `json:"id"`
-	UserID              pgtype.UUID        `json:"user_id"`
+	ID                  uuid.UUID          `json:"id"`
+	UserID              uuid.UUID          `json:"user_id"`
 	Name                string             `json:"name"`
 	Color               pgtype.Text        `json:"color"`
 	Description         pgtype.Text        `json:"description"`
@@ -163,8 +164,8 @@ type Calendar struct {
 }
 
 type Category struct {
-	ID        pgtype.UUID        `json:"id"`
-	UserID    pgtype.UUID        `json:"user_id"`
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
 	Name      string             `json:"name"`
 	RootType  RootCategoryType   `json:"root_type"`
 	Color     pgtype.Text        `json:"color"`
@@ -172,17 +173,17 @@ type Category struct {
 }
 
 type ChecklistItem struct {
-	ID          pgtype.UUID `json:"id"`
-	TaskID      pgtype.UUID `json:"task_id"`
+	ID          uuid.UUID   `json:"id"`
+	TaskID      uuid.UUID   `json:"task_id"`
 	Content     string      `json:"content"`
 	IsCompleted interface{} `json:"is_completed"`
 	Position    int32       `json:"position"`
 }
 
 type Project struct {
-	ID          pgtype.UUID        `json:"id"`
-	UserID      pgtype.UUID        `json:"user_id"`
-	CategoryID  pgtype.UUID        `json:"category_id"`
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	CategoryID  uuid.UUID          `json:"category_id"`
 	Title       string             `json:"title"`
 	Description pgtype.Text        `json:"description"`
 	IsArchived  interface{}        `json:"is_archived"`
@@ -191,9 +192,9 @@ type Project struct {
 }
 
 type Result struct {
-	ID           pgtype.UUID        `json:"id"`
-	UserID       pgtype.UUID        `json:"user_id"`
-	ProjectID    pgtype.UUID        `json:"project_id"`
+	ID           uuid.UUID          `json:"id"`
+	UserID       uuid.UUID          `json:"user_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
 	TargetTaskID pgtype.UUID        `json:"target_task_id"`
 	Type         string             `json:"type"`
 	Value        pgtype.Numeric     `json:"value"`
@@ -202,9 +203,9 @@ type Result struct {
 }
 
 type ScheduledEvent struct {
-	ID              pgtype.UUID        `json:"id"`
-	UserID          pgtype.UUID        `json:"user_id"`
-	ProjectID       pgtype.UUID        `json:"project_id"`
+	ID              uuid.UUID          `json:"id"`
+	UserID          uuid.UUID          `json:"user_id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
 	CalendarID      pgtype.UUID        `json:"calendar_id"`
 	Title           string             `json:"title"`
 	Description     pgtype.Text        `json:"description"`
@@ -226,9 +227,9 @@ type ScheduledEvent struct {
 }
 
 type Task struct {
-	ID           pgtype.UUID        `json:"id"`
-	UserID       pgtype.UUID        `json:"user_id"`
-	ProjectID    pgtype.UUID        `json:"project_id"`
+	ID           uuid.UUID          `json:"id"`
+	UserID       uuid.UUID          `json:"user_id"`
+	ProjectID    uuid.UUID          `json:"project_id"`
 	Title        string             `json:"title"`
 	NoteMarkdown pgtype.Text        `json:"note_markdown"`
 	Status       TaskStatus         `json:"status"`
@@ -244,9 +245,9 @@ type Task struct {
 }
 
 type TimeEntry struct {
-	ID              pgtype.UUID        `json:"id"`
-	UserID          pgtype.UUID        `json:"user_id"`
-	ProjectID       pgtype.UUID        `json:"project_id"`
+	ID              uuid.UUID          `json:"id"`
+	UserID          uuid.UUID          `json:"user_id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
 	TaskID          pgtype.UUID        `json:"task_id"`
 	StartedAt       pgtype.Timestamptz `json:"started_at"`
 	EndedAt         pgtype.Timestamptz `json:"ended_at"`
@@ -255,9 +256,9 @@ type TimeEntry struct {
 }
 
 type TimetableSlot struct {
-	ID        pgtype.UUID `json:"id"`
-	UserID    pgtype.UUID `json:"user_id"`
-	ProjectID pgtype.UUID `json:"project_id"`
+	ID        uuid.UUID   `json:"id"`
+	UserID    uuid.UUID   `json:"user_id"`
+	ProjectID uuid.UUID   `json:"project_id"`
 	DayOfWeek int16       `json:"day_of_week"`
 	StartTime pgtype.Time `json:"start_time"`
 	EndTime   pgtype.Time `json:"end_time"`
@@ -266,7 +267,7 @@ type TimetableSlot struct {
 }
 
 type User struct {
-	ID           pgtype.UUID        `json:"id"`
+	ID           uuid.UUID          `json:"id"`
 	Email        string             `json:"email"`
 	PasswordHash string             `json:"password_hash"`
 	Name         string             `json:"name"`

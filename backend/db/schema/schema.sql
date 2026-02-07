@@ -42,7 +42,7 @@ CREATE TABLE projects(
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   title VARCHAR(100) NOT NULL,
   description TEXT,
-  is_archived BOOLEN NOT NULL DEFAULT FALSE,
+  is_archived BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -70,7 +70,7 @@ CREATE TABLE checklist_items(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES task(id) ON DELETE CASCADE,
   content VARCHAR(255) NOT NULL,
-  is_completed BOOLEN NOT NULL DEFAULT FALSE,
+  is_completed BOOLEAN NOT NULL DEFAULT FALSE,
   position INTEGER NOT NULL DEFAULT 0
 );
 -- time table

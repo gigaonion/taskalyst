@@ -10,10 +10,12 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	
+
 	"github.com/gigaonion/taskalyst/backend/internal/config"
+	"github.com/gigaonion/taskalyst/backend/internal/handler"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
+	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 )
 
 func main() {
@@ -31,13 +33,15 @@ func main() {
 	defer pool.Close()
 
 	repo := repository.New(pool)
-	_ = repo //todo
-
+  userUsecase := usecase.NewUserUsecase(repo,cfg)
+	userHandler := handler.NewUserHandler(userUsecase)
 	e := echo.New()
 	
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS()) // 開発用
+
+	handler.RegisterRoutes(e,userHandler,cfg)
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

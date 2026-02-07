@@ -1,0 +1,19 @@
+package handler
+
+import (
+	"github.com/labstack/echo/v4"
+	"github.com/gigaonion/taskalyst/backend/internal/config"
+	"github.com/gigaonion/taskalyst/backend/internal/handler/middleware"
+)
+
+func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, cfg *config.Config) {
+	// Auth Group
+	authGroup := e.Group("/auth")
+	authGroup.POST("/signup", userHandler.SignUp)
+	authGroup.POST("/login", userHandler.Login)
+
+	api := e.Group("/api")
+	api.Use(middleware.JWTMiddleware(cfg))
+
+	api.GET("/users/me", userHandler.GetMe)
+}

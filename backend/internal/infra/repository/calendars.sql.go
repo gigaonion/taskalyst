@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -20,7 +21,7 @@ INSERT INTO calendars (
 `
 
 type CreateCalendarParams struct {
-	UserID      pgtype.UUID `json:"user_id"`
+	UserID      uuid.UUID   `json:"user_id"`
 	Name        string      `json:"name"`
 	Color       pgtype.Text `json:"color"`
 	Description pgtype.Text `json:"description"`
@@ -63,8 +64,8 @@ INSERT INTO scheduled_events (
 `
 
 type CreateEventParams struct {
-	UserID      pgtype.UUID        `json:"user_id"`
-	ProjectID   pgtype.UUID        `json:"project_id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	ProjectID   uuid.UUID          `json:"project_id"`
 	CalendarID  pgtype.UUID        `json:"calendar_id"`
 	Title       string             `json:"title"`
 	Description pgtype.Text        `json:"description"`
@@ -125,7 +126,7 @@ WHERE user_id = $1 AND ical_uid = $2 LIMIT 1
 `
 
 type GetEventByICalUIDParams struct {
-	UserID  pgtype.UUID `json:"user_id"`
+	UserID  uuid.UUID   `json:"user_id"`
 	IcalUid pgtype.Text `json:"ical_uid"`
 }
 
@@ -164,7 +165,7 @@ WHERE user_id = $1
 ORDER BY created_at
 `
 
-func (q *Queries) ListCalendars(ctx context.Context, userID pgtype.UUID) ([]Calendar, error) {
+func (q *Queries) ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calendar, error) {
 	rows, err := q.db.Query(ctx, listCalendars, userID)
 	if err != nil {
 		return nil, err
@@ -206,15 +207,15 @@ ORDER BY e.start_at ASC
 `
 
 type ListEventsByRangeParams struct {
-	UserID    pgtype.UUID        `json:"user_id"`
+	UserID    uuid.UUID          `json:"user_id"`
 	StartTime pgtype.Timestamptz `json:"start_time"`
 	EndTime   pgtype.Timestamptz `json:"end_time"`
 }
 
 type ListEventsByRangeRow struct {
-	ID              pgtype.UUID        `json:"id"`
-	UserID          pgtype.UUID        `json:"user_id"`
-	ProjectID       pgtype.UUID        `json:"project_id"`
+	ID              uuid.UUID          `json:"id"`
+	UserID          uuid.UUID          `json:"user_id"`
+	ProjectID       uuid.UUID          `json:"project_id"`
 	CalendarID      pgtype.UUID        `json:"calendar_id"`
 	Title           string             `json:"title"`
 	Description     pgtype.Text        `json:"description"`
@@ -234,7 +235,7 @@ type ListEventsByRangeRow struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	ProjectTitle    string             `json:"project_title"`
-	CategoryID      pgtype.UUID        `json:"category_id"`
+	CategoryID      uuid.UUID          `json:"category_id"`
 }
 
 func (q *Queries) ListEventsByRange(ctx context.Context, arg ListEventsByRangeParams) ([]ListEventsByRangeRow, error) {

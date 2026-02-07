@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -20,7 +21,7 @@ INSERT INTO categories (
 `
 
 type CreateCategoryParams struct {
-	UserID   pgtype.UUID      `json:"user_id"`
+	UserID   uuid.UUID        `json:"user_id"`
 	Name     string           `json:"name"`
 	RootType RootCategoryType `json:"root_type"`
 	Color    pgtype.Text      `json:"color"`
@@ -54,8 +55,8 @@ INSERT INTO projects (
 `
 
 type CreateProjectParams struct {
-	UserID      pgtype.UUID `json:"user_id"`
-	CategoryID  pgtype.UUID `json:"category_id"`
+	UserID      uuid.UUID   `json:"user_id"`
+	CategoryID  uuid.UUID   `json:"category_id"`
 	Title       string      `json:"title"`
 	Description pgtype.Text `json:"description"`
 	IsArchived  interface{} `json:"is_archived"`
@@ -89,8 +90,8 @@ WHERE id = $1 AND user_id = $2 LIMIT 1
 `
 
 type GetProjectParams struct {
-	ID     pgtype.UUID `json:"id"`
-	UserID pgtype.UUID `json:"user_id"`
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) GetProject(ctx context.Context, arg GetProjectParams) (Project, error) {
@@ -115,7 +116,7 @@ WHERE user_id = $1
 ORDER BY root_type, name
 `
 
-func (q *Queries) ListCategories(ctx context.Context, userID pgtype.UUID) ([]Category, error) {
+func (q *Queries) ListCategories(ctx context.Context, userID uuid.UUID) ([]Category, error) {
 	rows, err := q.db.Query(ctx, listCategories, userID)
 	if err != nil {
 		return nil, err
@@ -153,14 +154,14 @@ ORDER BY p.updated_at DESC
 `
 
 type ListProjectsParams struct {
-	UserID     pgtype.UUID `json:"user_id"`
+	UserID     uuid.UUID   `json:"user_id"`
 	IsArchived pgtype.Bool `json:"is_archived"`
 }
 
 type ListProjectsRow struct {
-	ID           pgtype.UUID        `json:"id"`
-	UserID       pgtype.UUID        `json:"user_id"`
-	CategoryID   pgtype.UUID        `json:"category_id"`
+	ID           uuid.UUID          `json:"id"`
+	UserID       uuid.UUID          `json:"user_id"`
+	CategoryID   uuid.UUID          `json:"category_id"`
 	Title        string             `json:"title"`
 	Description  pgtype.Text        `json:"description"`
 	IsArchived   interface{}        `json:"is_archived"`

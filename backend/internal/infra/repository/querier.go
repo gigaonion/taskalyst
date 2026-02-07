@@ -7,7 +7,7 @@ package repository
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type Querier interface {
@@ -19,9 +19,9 @@ type Querier interface {
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
 	GetProject(ctx context.Context, arg GetProjectParams) (Project, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
-	ListCalendars(ctx context.Context, userID pgtype.UUID) ([]Calendar, error)
-	ListCategories(ctx context.Context, userID pgtype.UUID) ([]Category, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calendar, error)
+	ListCategories(ctx context.Context, userID uuid.UUID) ([]Category, error)
 	ListEventsByRange(ctx context.Context, arg ListEventsByRangeParams) ([]ListEventsByRangeRow, error)
 	ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error)
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (User, error)
