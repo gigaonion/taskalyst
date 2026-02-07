@@ -51,7 +51,7 @@ INSERT INTO projects (
     user_id, category_id, title, description, is_archived
 ) VALUES (
     $1, $2, $3, $4, $5
-) RETURNING id, user_id, category_id, title, description, is_archived, created_at, updated_at
+) RETURNING id, user_id, category_id, title, description, color, is_archived, created_at, updated_at
 `
 
 type CreateProjectParams struct {
@@ -77,6 +77,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.CategoryID,
 		&i.Title,
 		&i.Description,
+		&i.Color,
 		&i.IsArchived,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -85,7 +86,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, user_id, category_id, title, description, is_archived, created_at, updated_at FROM projects
+SELECT id, user_id, category_id, title, description, color, is_archived, created_at, updated_at FROM projects
 WHERE id = $1 AND user_id = $2 LIMIT 1
 `
 
@@ -103,6 +104,7 @@ func (q *Queries) GetProject(ctx context.Context, arg GetProjectParams) (Project
 		&i.CategoryID,
 		&i.Title,
 		&i.Description,
+		&i.Color,
 		&i.IsArchived,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -144,7 +146,7 @@ func (q *Queries) ListCategories(ctx context.Context, userID uuid.UUID) ([]Categ
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT p.id, p.user_id, p.category_id, p.title, p.description, p.is_archived, p.created_at, p.updated_at, c.name as category_name, c.root_type, c.color
+SELECT p.id, p.user_id, p.category_id, p.title, p.description, p.color, p.is_archived, p.created_at, p.updated_at, c.name as category_name, c.root_type, c.color
 FROM projects p
 JOIN categories c ON p.category_id = c.id
 WHERE
@@ -164,12 +166,13 @@ type ListProjectsRow struct {
 	CategoryID   uuid.UUID          `json:"category_id"`
 	Title        string             `json:"title"`
 	Description  pgtype.Text        `json:"description"`
+	Color        pgtype.Text        `json:"color"`
 	IsArchived   bool               `json:"is_archived"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	CategoryName string             `json:"category_name"`
 	RootType     RootCategoryType   `json:"root_type"`
-	Color        pgtype.Text        `json:"color"`
+	Color_2      pgtype.Text        `json:"color_2"`
 }
 
 func (q *Queries) ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error) {
@@ -187,12 +190,13 @@ func (q *Queries) ListProjects(ctx context.Context, arg ListProjectsParams) ([]L
 			&i.CategoryID,
 			&i.Title,
 			&i.Description,
+			&i.Color,
 			&i.IsArchived,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CategoryName,
 			&i.RootType,
-			&i.Color,
+			&i.Color_2,
 		); err != nil {
 			return nil, err
 		}

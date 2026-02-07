@@ -13,17 +13,27 @@ import (
 type Querier interface {
 	CreateCalendar(ctx context.Context, arg CreateCalendarParams) (Calendar, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateChecklistItem(ctx context.Context, arg CreateChecklistItemParams) (ChecklistItem, error)
 	CreateEvent(ctx context.Context, arg CreateEventParams) (ScheduledEvent, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
+	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteChecklistItem(ctx context.Context, id uuid.UUID) error
+	DeleteTask(ctx context.Context, arg DeleteTaskParams) error
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
 	GetProject(ctx context.Context, arg GetProjectParams) (Project, error)
+	GetTask(ctx context.Context, arg GetTaskParams) (Task, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calendar, error)
 	ListCategories(ctx context.Context, userID uuid.UUID) ([]Category, error)
+	ListChecklistItems(ctx context.Context, taskID uuid.UUID) ([]ChecklistItem, error)
 	ListEventsByRange(ctx context.Context, arg ListEventsByRangeParams) ([]ListEventsByRangeRow, error)
 	ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error)
+	// タスクと同時に、チェックリストの進捗を取得
+	ListTasksWithStats(ctx context.Context, arg ListTasksWithStatsParams) ([]ListTasksWithStatsRow, error)
+	UpdateChecklistItem(ctx context.Context, arg UpdateChecklistItemParams) (ChecklistItem, error)
+	UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, error)
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (User, error)
 }
 

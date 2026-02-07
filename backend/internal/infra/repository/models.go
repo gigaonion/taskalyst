@@ -186,6 +186,7 @@ type Project struct {
 	CategoryID  uuid.UUID          `json:"category_id"`
 	Title       string             `json:"title"`
 	Description pgtype.Text        `json:"description"`
+	Color       pgtype.Text        `json:"color"`
 	IsArchived  bool               `json:"is_archived"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`

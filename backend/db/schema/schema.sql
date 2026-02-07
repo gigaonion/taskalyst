@@ -1,5 +1,7 @@
 -- Enable UUID --
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Enable Exclude --
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
 -- Immute Data --
 CREATE TYPE user_role AS ENUM('ADMIN', 'USER');
 CREATE TYPE task_status AS ENUM('TODO','DOING','DONE');
@@ -21,7 +23,7 @@ CREATE TABLE api_tokens(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
-  token_hash VARCHAR(64) NOT NULL,
+  token_hash VARCHAR(255) NOT NULL,
   expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -35,6 +37,18 @@ CREATE TABLE categories(
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(user_id,name)
 );
+-- calendar
+CREATE TABLE calendars (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7),
+    description TEXT,
+    sync_token VARCHAR(255) NOT NULL DEFAULT '1',
+    supported_components VARCHAR(50)[] DEFAULT ARRAY['VEVENT', 'VTODO'],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 -- project
 CREATE TABLE projects(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,6 +56,7 @@ CREATE TABLE projects(
   category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
   title VARCHAR(100) NOT NULL,
   description TEXT,
+  color VARCHAR(7) DEFAULT '#808080',
   is_archived BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -68,7 +83,7 @@ CREATE TABLE tasks(
 -- child task
 CREATE TABLE checklist_items(
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  task_id UUID NOT NULL REFERENCES task(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   content VARCHAR(255) NOT NULL,
   is_completed BOOLEAN NOT NULL DEFAULT FALSE,
   position INTEGER NOT NULL DEFAULT 0
@@ -91,18 +106,6 @@ CREATE TABLE timetable_slots(
           ('2000-01-01'::date + end_time)::timestamp
       ) WITH &&
   )
-);
--- calendar
-CREATE TABLE calendars (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    color VARCHAR(7),
-    description TEXT,
-    sync_token VARCHAR(255) NOT NULL DEFAULT '1',
-    supported_components VARCHAR(50)[] DEFAULT ARRAY['VEVENT', 'VTODO'],
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE TABLE scheduled_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
