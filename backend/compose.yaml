@@ -1,0 +1,16 @@
+services:
+  # 開発用
+  db:
+    image: postgres:18-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: taskalyst
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: taskalyst
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/18/data
+      - ./db/schema/schema.sql:/docker-entrypoint-initdb.d/init.sql
+volumes:
+  db_data:
