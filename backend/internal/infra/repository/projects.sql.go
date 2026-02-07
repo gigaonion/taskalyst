@@ -59,7 +59,7 @@ type CreateProjectParams struct {
 	CategoryID  uuid.UUID   `json:"category_id"`
 	Title       string      `json:"title"`
 	Description pgtype.Text `json:"description"`
-	IsArchived  interface{} `json:"is_archived"`
+	IsArchived  bool        `json:"is_archived"`
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error) {
@@ -164,7 +164,7 @@ type ListProjectsRow struct {
 	CategoryID   uuid.UUID          `json:"category_id"`
 	Title        string             `json:"title"`
 	Description  pgtype.Text        `json:"description"`
-	IsArchived   interface{}        `json:"is_archived"`
+	IsArchived   bool               `json:"is_archived"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	CategoryName string             `json:"category_name"`

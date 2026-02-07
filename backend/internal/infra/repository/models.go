@@ -173,11 +173,11 @@ type Category struct {
 }
 
 type ChecklistItem struct {
-	ID          uuid.UUID   `json:"id"`
-	TaskID      uuid.UUID   `json:"task_id"`
-	Content     string      `json:"content"`
-	IsCompleted interface{} `json:"is_completed"`
-	Position    int32       `json:"position"`
+	ID          uuid.UUID `json:"id"`
+	TaskID      uuid.UUID `json:"task_id"`
+	Content     string    `json:"content"`
+	IsCompleted bool      `json:"is_completed"`
+	Position    int32     `json:"position"`
 }
 
 type Project struct {
@@ -186,7 +186,7 @@ type Project struct {
 	CategoryID  uuid.UUID          `json:"category_id"`
 	Title       string             `json:"title"`
 	Description pgtype.Text        `json:"description"`
-	IsArchived  interface{}        `json:"is_archived"`
+	IsArchived  bool               `json:"is_archived"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }

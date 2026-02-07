@@ -35,13 +35,16 @@ func main() {
 	repo := repository.New(pool)
   userUsecase := usecase.NewUserUsecase(repo,cfg)
 	userHandler := handler.NewUserHandler(userUsecase)
+	projectUsecase := usecase.NewProjectUsecase(repo)
+  projectHandler := handler.NewProjectHandler(projectUsecase)
+
 	e := echo.New()
+  handler.RegisterRoutes(e, userHandler, projectHandler, cfg)
 	
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS()) // 開発用
 
-	handler.RegisterRoutes(e,userHandler,cfg)
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
