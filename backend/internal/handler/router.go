@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/gigaonion/taskalyst/backend/internal/config"
 	"github.com/gigaonion/taskalyst/backend/internal/handler/middleware"
 )

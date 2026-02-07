@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 )
