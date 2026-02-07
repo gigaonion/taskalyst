@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":rebaseStalePrs",
+    ":PRTimelySplit",
+    ":semanticCommits"
+  ],
+  "timezone": "Asia/Tokyo",
+  "labels": ["dependencies"],
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "Goのアップデート",
+      "matchManagers": ["gomod"],
+      "groupName": "go-dependencies"
+    },
+  {
+      "description": "Node.jsのdevDependencies",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "node-dev-dependencies",
+      "automerge": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "assignees": ["@gigaonion"]
+  },
+  "rangeStrategy": "pin"
+}
