@@ -3,7 +3,6 @@
   "extends": [
     "config:recommended",
     ":rebaseStalePrs",
-    ":PRTimelySplit",
     ":semanticCommits"
   ],
   "timezone": "Asia/Tokyo",
@@ -15,7 +14,7 @@
       "matchManagers": ["gomod"],
       "groupName": "go-dependencies"
     },
-    {
+  {
       "description": "Node.jsのdevDependencies",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
@@ -25,7 +24,7 @@
   ],
   "vulnerabilityAlerts": {
     "labels": ["security"],
-    "assignees": ["@gigaonion"]
+    "assignees": ["gigaonion"]
   },
   "rangeStrategy": "pin"
 }
