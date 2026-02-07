@@ -42,9 +42,11 @@ func main() {
 	timeUsecase := usecase.NewTimeUsecase(repo)
   timeHandler := handler.NewTimeHandler(timeUsecase)
 	apiTokenHandler := handler.NewApiTokenHandler(repo)
+	calendarUsecase := usecase.NewCalendarUsecase(repo)
+	calendarHandler := handler.NewCalendarHandler(calendarUsecase)
 
 	e := echo.New()
-  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg)
+  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg,calendarHandler,repo)
 	
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())

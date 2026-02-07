@@ -39,7 +39,7 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 		UserID:    userID,
 		Name:      req.Name,
 		TokenHash: tokenHash,
-	ExpiresAt: pgtype.Timestamptz{Valid: false},	
+	ExpiresAt: pgtype.Timestamptz{Valid: false},
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
