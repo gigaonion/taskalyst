@@ -30,10 +30,19 @@ func NewCalendarUsecase(repo *repository.Queries) CalendarUsecase {
 
 
 func (u *calendarUsecase) CreateEvent(ctx context.Context, userID, projectID uuid.UUID, title string, startAt, endAt time.Time, isAllDay bool) (*repository.ScheduledEvent, error) {
-	// Todo: デフォルトカレンダーを取得して設定する
+	// デフォルトカレンダー
+	calendars, err := u.repo.ListCalendars(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get default calendar: %w", err)
+	}
+	if len(calendars) == 0 {
+		return nil, fmt.Errorf("no calendar found for user")
+	}
+	defaultCalendarID := calendars[0].ID
 	arg := repository.CreateEventParams{
 		UserID:    userID,
 		ProjectID: projectID,
+		CalendarID: pgtype.UUID{Bytes: defaultCalendarID, Valid: true},
 		Title:     title,
 		StartAt:   toTimestamp(&startAt),
 		EndAt:     toTimestamp(&endAt),
