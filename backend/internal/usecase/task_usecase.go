@@ -12,7 +12,7 @@ import (
 
 type TaskUsecase interface {
 	CreateTask(ctx context.Context, userID, projectID uuid.UUID, title, note string, dueDate *time.Time) (*repository.Task, error)
-	ListTasks(ctx context.Context, userID uuid.UUID, projectID *uuid.UUID, status *repository.TaskStatus) ([]repository.ListTasksWithStatsRow, error)
+	ListTasks(ctx context.Context, userID uuid.UUID, projectID *uuid.UUID, status *repository.TaskStatus, from, to *time.Time) ([]repository.ListTasksWithStatsRow, error)
 	UpdateTaskStatus(ctx context.Context, userID, taskID uuid.UUID, status repository.TaskStatus) (*repository.Task, error)
 	
 	AddChecklistItem(ctx context.Context, taskID uuid.UUID, content string) (*repository.ChecklistItem, error)
@@ -60,7 +60,7 @@ func (u *taskUsecase) CreateTask(ctx context.Context, userID, projectID uuid.UUI
 	return &task, nil
 }
 
-func (u *taskUsecase) ListTasks(ctx context.Context, userID uuid.UUID, projectID *uuid.UUID, status *repository.TaskStatus) ([]repository.ListTasksWithStatsRow, error) {
+func (u *taskUsecase) ListTasks(ctx context.Context, userID uuid.UUID, projectID *uuid.UUID, status *repository.TaskStatus, from, to *time.Time) ([]repository.ListTasksWithStatsRow, error) {
 	var argStatus repository.NullTaskStatus
 	if status != nil {
 		argStatus = repository.NullTaskStatus{TaskStatus: *status, Valid: true}
@@ -70,7 +70,8 @@ func (u *taskUsecase) ListTasks(ctx context.Context, userID uuid.UUID, projectID
 		UserID:    userID,
 		ProjectID: toUUID(projectID),
 		Status:    argStatus,
-		// Todo: FromDate, ToDate
+		FromDate:  toTimestamp(from),
+		ToDate:    toTimestamp(to),
 	}
 
 	tasks, err := u.repo.ListTasksWithStats(ctx, arg)

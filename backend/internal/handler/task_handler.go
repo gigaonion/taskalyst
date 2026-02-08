@@ -77,7 +77,18 @@ func (h *TaskHandler) ListTasks(c echo.Context) error {
 		status = &st
 	}
 
-	tasks, err := h.u.ListTasks(c.Request().Context(), userID, projectID, status)
+	var from, to *time.Time
+	if f := c.QueryParam("from"); f != "" {
+		if t, err := time.Parse("2006-01-02", f); err == nil {
+			from = &t
+		}
+	}
+	if t := c.QueryParam("to"); t != "" {
+		if tm, err := time.Parse("2006-01-02", t); err == nil {
+			to = &tm
+		}
+	}
+	tasks, err := h.u.ListTasks(c.Request().Context(), userID, projectID, status, from, to)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
