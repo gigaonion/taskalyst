@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/config"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/gigaonion/taskalyst/backend/pkg/auth"
@@ -20,12 +21,14 @@ type UserUsecase interface {
 type userUsecase struct {
 	repo   *repository.Queries
 	config *config.Config
+	txManager db.TxManager
 }
 
-func NewUserUsecase(repo *repository.Queries, cfg *config.Config) UserUsecase {
+func NewUserUsecase(repo *repository.Queries, txManager db.TxManager, cfg *config.Config) UserUsecase {
 	return &userUsecase{
 		repo:   repo,
 		config: cfg,
+		txManager: txManager,
 	}
 }
 
@@ -36,17 +39,29 @@ func (u *userUsecase) SignUp(ctx context.Context, email, plainPassword, name str
 		return nil, err
 	}
 
-	// User
-	arg := repository.CreateUserParams{
-		Email:        email,
-		PasswordHash: hash,
-		Name:         name,
-		Role:         repository.UserRoleUSER,
-	}
+	var user repository.User
 
-	user, err := u.repo.CreateUser(ctx, arg)
+	err = u.txManager.ReadCommitted(ctx, func(q *repository.Queries) error {
+		// User
+		arg := repository.CreateUserParams{
+			Email:        email,
+			PasswordHash: hash,
+			Name:         name,
+			Role:         repository.UserRoleUSER,
+		}
+
+		createdUser, err := q.CreateUser(ctx, arg)
+		if err != nil {
+			return err
+		}
+
+
+		user = createdUser
+		return nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, fmt.Errorf("signup failed: %w", err)
 	}
 
 	return &user, nil

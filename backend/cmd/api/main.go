@@ -35,7 +35,8 @@ func main() {
 	defer pool.Close()
 
 	repo := repository.New(pool)
-  userUsecase := usecase.NewUserUsecase(repo,cfg)
+	txManager := db.NewTxManager(pool)
+  userUsecase := usecase.NewUserUsecase(repo,txManager,cfg)
 	userHandler := handler.NewUserHandler(userUsecase)
 	projectUsecase := usecase.NewProjectUsecase(repo)
   projectHandler := handler.NewProjectHandler(projectUsecase)
