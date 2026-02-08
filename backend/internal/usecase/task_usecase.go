@@ -51,6 +51,7 @@ func (u *taskUsecase) CreateTask(ctx context.Context, userID, projectID uuid.UUI
 		NoteMarkdown: toTextFromStr(note),
 		DueDate:      toTimestamp(dueDate),
 		Priority:     pgtype.Int2{Int16: 0, Valid: true}, // Default: None
+		Status:       repository.TaskStatusTODO,
 	}
 
 	task, err := u.repo.CreateTask(ctx, arg)

@@ -1,8 +1,9 @@
 -- name: CreateTask :one
 INSERT INTO tasks (
-    user_id, project_id, title, note_markdown, due_date, priority
+    user_id, project_id, title, note_markdown, due_date, priority,
+    calendar_id, ical_uid, status
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: GetTask :one
@@ -43,6 +44,34 @@ SET
     updated_at = NOW()
 WHERE id = $1 AND user_id = $2
 RETURNING *;
+
+-- name: ListTasksByCalendar :many
+SELECT * FROM tasks
+WHERE user_id = $1 AND calendar_id = $2
+ORDER BY created_at DESC;
+
+-- name: GetTaskByICalUID :one
+SELECT * FROM tasks
+WHERE user_id = $1 AND ical_uid = $2 LIMIT 1;
+
+-- name: UpdateTaskByICalUID :one
+UPDATE tasks
+SET
+    title = COALESCE(sqlc.narg('title'), title),
+    note_markdown = COALESCE(sqlc.narg('note_markdown'), note_markdown),
+    status = COALESCE(sqlc.narg('status'), status),
+    due_date = COALESCE(sqlc.narg('due_date'), due_date),
+    priority = COALESCE(sqlc.narg('priority'), priority),
+    etag = COALESCE(sqlc.narg('etag'), etag),
+    sequence = COALESCE(sqlc.narg('sequence'), sequence),
+    completed_at = COALESCE(sqlc.narg('completed_at'), completed_at),
+    updated_at = NOW()
+WHERE user_id = $1 AND ical_uid = $2
+RETURNING *;
+
+-- name: DeleteTaskByICalUID :exec
+DELETE FROM tasks
+WHERE user_id = $1 AND ical_uid = $2;
 
 -- name: DeleteTask :exec
 DELETE FROM tasks

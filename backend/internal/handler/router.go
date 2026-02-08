@@ -1,13 +1,14 @@
 package handler
 
 import (
+	"net/http"
 	"github.com/labstack/echo/v4"
 	"github.com/gigaonion/taskalyst/backend/internal/config"
 	"github.com/gigaonion/taskalyst/backend/internal/handler/middleware"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
-func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler, timeHandler *TimeHandler, apiTokenHandler *ApiTokenHandler, cfg *config.Config, calendarHandler *CalendarHandler,resultHandler *ResultHandler, repo *repository.Queries) {
+func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler, timeHandler *TimeHandler, apiTokenHandler *ApiTokenHandler, cfg *config.Config, calendarHandler *CalendarHandler,resultHandler *ResultHandler, caldavHandler *CalDavHandler, repo *repository.Queries) {
 	// Auth Group
 	authGroup := e.Group("/auth")
 	authGroup.POST("/signup", userHandler.SignUp)
@@ -43,25 +44,34 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 	api.POST("/events", calendarHandler.CreateEvent)
 	api.GET("/events", calendarHandler.ListEvents)
 
+	api.POST("/calendars", calendarHandler.CreateCalendar)
+	api.GET("/calendars", calendarHandler.ListCalendars)
+	api.DELETE("/calendars/:id", calendarHandler.DeleteCalendar)
+
 	api.POST("/timetable", calendarHandler.CreateTimetableSlot)
 	api.GET("/timetable", calendarHandler.ListTimetable)
-
-	api.POST("/api-tokens", apiTokenHandler.Create)
-	api.GET("/api-tokens", apiTokenHandler.List)
-	api.DELETE("/api-tokens/:id", apiTokenHandler.Revoke)
 
 	api.POST("/sync/schedule", calendarHandler.SyncSchedule)
 
 	api.POST("/results", resultHandler.Create)
-  api.GET("/results", resultHandler.List)
-  api.DELETE("/results/:id", resultHandler.Delete)
-    api.POST("/events", calendarHandler.CreateEvent)
-    api.GET("/events", calendarHandler.ListEvents)
+	api.GET("/results", resultHandler.List)
+	api.DELETE("/results/:id", resultHandler.Delete)
 
-    api.POST("/calendars", calendarHandler.CreateCalendar)
-    api.GET("/calendars", calendarHandler.ListCalendars)
-    api.DELETE("/calendars/:id", calendarHandler.DeleteCalendar)
+	// CalDAV
+	dav := e.Group("/dav")
+	dav.Use(middleware.AuthMiddleware(cfg, repo))
+	dav.Match([]string{"OPTIONS"}, "", caldavHandler.Options)
+	dav.Match([]string{"PROPFIND"}, "", caldavHandler.Propfind)
+	dav.Match([]string{"PROPFIND"}, "/:calendarID", caldavHandler.Propfind)
+	dav.GET("/:calendarID", caldavHandler.GetCalendar)
+	dav.GET("/:calendarID/:resource", caldavHandler.GetResource)
+	dav.Match([]string{"PUT"}, "/:calendarID/:resource", caldavHandler.PutResource)
+	dav.Match([]string{"OPTIONS"}, "/:calendarID/:resource", caldavHandler.Options)
+	dav.Match([]string{"PROPFIND"}, "/:calendarID/:resource", caldavHandler.Propfind)
 
-    api.POST("/timetable", calendarHandler.CreateTimetableSlot)
+	// Well-known
+	e.GET("/.well-known/caldav", func(c echo.Context) error {
+		return c.Redirect(http.StatusMovedPermanently, "/dav")
+	})
 	
 }

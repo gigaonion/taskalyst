@@ -25,8 +25,11 @@ type Querier interface {
 	DeleteApiToken(ctx context.Context, arg DeleteApiTokenParams) error
 	DeleteCalendar(ctx context.Context, arg DeleteCalendarParams) error
 	DeleteChecklistItem(ctx context.Context, id uuid.UUID) error
+	DeleteEventByICalUID(ctx context.Context, arg DeleteEventByICalUIDParams) error
 	DeleteResult(ctx context.Context, arg DeleteResultParams) error
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) error
+	DeleteTaskByICalUID(ctx context.Context, arg DeleteTaskByICalUIDParams) error
+	GetCalendar(ctx context.Context, arg GetCalendarParams) (Calendar, error)
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
 	// GROWTHカテゴリの実績のみを日別集計
 	GetGrowthStats(ctx context.Context, arg GetGrowthStatsParams) ([]GetGrowthStatsRow, error)
@@ -34,6 +37,7 @@ type Querier interface {
 	// 計測中のエントリ
 	GetRunningTimeEntries(ctx context.Context, userID uuid.UUID) ([]GetRunningTimeEntriesRow, error)
 	GetTask(ctx context.Context, arg GetTaskParams) (Task, error)
+	GetTaskByICalUID(ctx context.Context, arg GetTaskByICalUIDParams) (Task, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByTokenHash(ctx context.Context, tokenHash string) (User, error)
@@ -41,16 +45,20 @@ type Querier interface {
 	ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calendar, error)
 	ListCategories(ctx context.Context, userID uuid.UUID) ([]Category, error)
 	ListChecklistItems(ctx context.Context, taskID uuid.UUID) ([]ChecklistItem, error)
+	ListEventsByCalendar(ctx context.Context, arg ListEventsByCalendarParams) ([]ScheduledEvent, error)
 	ListEventsByRange(ctx context.Context, arg ListEventsByRangeParams) ([]ListEventsByRangeRow, error)
 	ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error)
 	ListResults(ctx context.Context, arg ListResultsParams) ([]ListResultsRow, error)
+	ListTasksByCalendar(ctx context.Context, arg ListTasksByCalendarParams) ([]Task, error)
 	// タスクと同時に、チェックリストの進捗を取得
 	ListTasksWithStats(ctx context.Context, arg ListTasksWithStatsParams) ([]ListTasksWithStatsRow, error)
 	ListTimeEntries(ctx context.Context, arg ListTimeEntriesParams) ([]ListTimeEntriesRow, error)
 	ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]ListTimetableSlotsRow, error)
 	StopTimeEntry(ctx context.Context, arg StopTimeEntryParams) (TimeEntry, error)
 	UpdateChecklistItem(ctx context.Context, arg UpdateChecklistItemParams) (ChecklistItem, error)
+	UpdateEventByICalUID(ctx context.Context, arg UpdateEventByICalUIDParams) (ScheduledEvent, error)
 	UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, error)
+	UpdateTaskByICalUID(ctx context.Context, arg UpdateTaskByICalUIDParams) (Task, error)
 	UpdateTimeEntry(ctx context.Context, arg UpdateTimeEntryParams) (TimeEntry, error)
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (User, error)
 }

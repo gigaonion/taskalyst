@@ -46,12 +46,14 @@ func main() {
 	apiTokenHandler := handler.NewApiTokenHandler(repo)
 	calendarUsecase := usecase.NewCalendarUsecase(repo)
 	calendarHandler := handler.NewCalendarHandler(calendarUsecase)
+	caldavUsecase := usecase.NewCalDavUsecase(repo)
+	caldavHandler := handler.NewCalDavHandler(caldavUsecase, calendarUsecase)
 	resultUsecase := usecase.NewResultUsecase(repo)
 	resultHandler := handler.NewResultHandler(resultUsecase)
 
 	e := echo.New()
 	e.Validator = &customvalidator.CustomValidator{Validator: validator.New()} //バリデータを登録
-  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg,calendarHandler,resultHandler,repo)
+  handler.RegisterRoutes(e, userHandler, projectHandler, taskHandler,timeHandler,apiTokenHandler,cfg,calendarHandler,resultHandler,caldavHandler,repo)
 	
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())

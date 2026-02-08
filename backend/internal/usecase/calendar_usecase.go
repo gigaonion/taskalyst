@@ -55,6 +55,9 @@ func (u *calendarUsecase) CreateEvent(ctx context.Context, userID, projectID uui
 		IsAllDay:    isAllDay,
 		IcalUid:     pgtype.Text{String: uuid.NewString(), Valid: true},
 		Status:      toTextFromStr("CONFIRMED"),
+		Rrule:       pgtype.Text{Valid: false},
+		Etag:        pgtype.Text{Valid: false},
+		Sequence:    0,
 	}
 	event, err := u.repo.CreateEvent(ctx, arg)
 	if err != nil {

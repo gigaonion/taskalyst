@@ -41,9 +41,10 @@ func (q *Queries) CreateChecklistItem(ctx context.Context, arg CreateChecklistIt
 
 const createTask = `-- name: CreateTask :one
 INSERT INTO tasks (
-    user_id, project_id, title, note_markdown, due_date, priority
+    user_id, project_id, title, note_markdown, due_date, priority,
+    calendar_id, ical_uid, status
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at
 `
 
@@ -54,6 +55,9 @@ type CreateTaskParams struct {
 	NoteMarkdown pgtype.Text        `json:"note_markdown"`
 	DueDate      pgtype.Timestamptz `json:"due_date"`
 	Priority     pgtype.Int2        `json:"priority"`
+	CalendarID   pgtype.UUID        `json:"calendar_id"`
+	IcalUid      pgtype.Text        `json:"ical_uid"`
+	Status       TaskStatus         `json:"status"`
 }
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
@@ -64,6 +68,9 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		arg.NoteMarkdown,
 		arg.DueDate,
 		arg.Priority,
+		arg.CalendarID,
+		arg.IcalUid,
+		arg.Status,
 	)
 	var i Task
 	err := row.Scan(
@@ -111,6 +118,21 @@ func (q *Queries) DeleteTask(ctx context.Context, arg DeleteTaskParams) error {
 	return err
 }
 
+const deleteTaskByICalUID = `-- name: DeleteTaskByICalUID :exec
+DELETE FROM tasks
+WHERE user_id = $1 AND ical_uid = $2
+`
+
+type DeleteTaskByICalUIDParams struct {
+	UserID  uuid.UUID   `json:"user_id"`
+	IcalUid pgtype.Text `json:"ical_uid"`
+}
+
+func (q *Queries) DeleteTaskByICalUID(ctx context.Context, arg DeleteTaskByICalUIDParams) error {
+	_, err := q.db.Exec(ctx, deleteTaskByICalUID, arg.UserID, arg.IcalUid)
+	return err
+}
+
 const getTask = `-- name: GetTask :one
 SELECT id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at FROM tasks
 WHERE id = $1 AND user_id = $2 LIMIT 1
@@ -123,6 +145,39 @@ type GetTaskParams struct {
 
 func (q *Queries) GetTask(ctx context.Context, arg GetTaskParams) (Task, error) {
 	row := q.db.QueryRow(ctx, getTask, arg.ID, arg.UserID)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ProjectID,
+		&i.Title,
+		&i.NoteMarkdown,
+		&i.Status,
+		&i.DueDate,
+		&i.Priority,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CalendarID,
+		&i.IcalUid,
+		&i.Etag,
+		&i.Sequence,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
+const getTaskByICalUID = `-- name: GetTaskByICalUID :one
+SELECT id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at FROM tasks
+WHERE user_id = $1 AND ical_uid = $2 LIMIT 1
+`
+
+type GetTaskByICalUIDParams struct {
+	UserID  uuid.UUID   `json:"user_id"`
+	IcalUid pgtype.Text `json:"ical_uid"`
+}
+
+func (q *Queries) GetTaskByICalUID(ctx context.Context, arg GetTaskByICalUIDParams) (Task, error) {
+	row := q.db.QueryRow(ctx, getTaskByICalUID, arg.UserID, arg.IcalUid)
 	var i Task
 	err := row.Scan(
 		&i.ID,
@@ -165,6 +220,53 @@ func (q *Queries) ListChecklistItems(ctx context.Context, taskID uuid.UUID) ([]C
 			&i.Content,
 			&i.IsCompleted,
 			&i.Position,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTasksByCalendar = `-- name: ListTasksByCalendar :many
+SELECT id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at FROM tasks
+WHERE user_id = $1 AND calendar_id = $2
+ORDER BY created_at DESC
+`
+
+type ListTasksByCalendarParams struct {
+	UserID     uuid.UUID   `json:"user_id"`
+	CalendarID pgtype.UUID `json:"calendar_id"`
+}
+
+func (q *Queries) ListTasksByCalendar(ctx context.Context, arg ListTasksByCalendarParams) ([]Task, error) {
+	rows, err := q.db.Query(ctx, listTasksByCalendar, arg.UserID, arg.CalendarID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Task
+	for rows.Next() {
+		var i Task
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.Title,
+			&i.NoteMarkdown,
+			&i.Status,
+			&i.DueDate,
+			&i.Priority,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CalendarID,
+			&i.IcalUid,
+			&i.Etag,
+			&i.Sequence,
+			&i.CompletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -327,6 +429,69 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		arg.NoteMarkdown,
 		arg.DueDate,
 		arg.Priority,
+	)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ProjectID,
+		&i.Title,
+		&i.NoteMarkdown,
+		&i.Status,
+		&i.DueDate,
+		&i.Priority,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CalendarID,
+		&i.IcalUid,
+		&i.Etag,
+		&i.Sequence,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
+const updateTaskByICalUID = `-- name: UpdateTaskByICalUID :one
+UPDATE tasks
+SET
+    title = COALESCE($3, title),
+    note_markdown = COALESCE($4, note_markdown),
+    status = COALESCE($5, status),
+    due_date = COALESCE($6, due_date),
+    priority = COALESCE($7, priority),
+    etag = COALESCE($8, etag),
+    sequence = COALESCE($9, sequence),
+    completed_at = COALESCE($10, completed_at),
+    updated_at = NOW()
+WHERE user_id = $1 AND ical_uid = $2
+RETURNING id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at
+`
+
+type UpdateTaskByICalUIDParams struct {
+	UserID       uuid.UUID          `json:"user_id"`
+	IcalUid      pgtype.Text        `json:"ical_uid"`
+	Title        pgtype.Text        `json:"title"`
+	NoteMarkdown pgtype.Text        `json:"note_markdown"`
+	Status       NullTaskStatus     `json:"status"`
+	DueDate      pgtype.Timestamptz `json:"due_date"`
+	Priority     pgtype.Int2        `json:"priority"`
+	Etag         pgtype.Text        `json:"etag"`
+	Sequence     pgtype.Int4        `json:"sequence"`
+	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
+}
+
+func (q *Queries) UpdateTaskByICalUID(ctx context.Context, arg UpdateTaskByICalUIDParams) (Task, error) {
+	row := q.db.QueryRow(ctx, updateTaskByICalUID,
+		arg.UserID,
+		arg.IcalUid,
+		arg.Title,
+		arg.NoteMarkdown,
+		arg.Status,
+		arg.DueDate,
+		arg.Priority,
+		arg.Etag,
+		arg.Sequence,
+		arg.CompletedAt,
 	)
 	var i Task
 	err := row.Scan(

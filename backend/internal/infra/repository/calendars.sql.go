@@ -54,12 +54,12 @@ INSERT INTO scheduled_events (
     user_id, project_id, calendar_id,
     title, description, location,
     start_at, end_at, is_all_day,
-    ical_uid, status, rrule
+    ical_uid, status, rrule, etag, sequence
 ) VALUES (
     $1, $2, $3,
     $4, $5, $6,
     $7, $8, $9,
-    $10, $11, $12
+    $10, $11, $12, $13, $14
 ) RETURNING id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at
 `
 
@@ -76,6 +76,8 @@ type CreateEventParams struct {
 	IcalUid     pgtype.Text        `json:"ical_uid"`
 	Status      pgtype.Text        `json:"status"`
 	Rrule       pgtype.Text        `json:"rrule"`
+	Etag        pgtype.Text        `json:"etag"`
+	Sequence    int32              `json:"sequence"`
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (ScheduledEvent, error) {
@@ -92,6 +94,8 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Sched
 		arg.IcalUid,
 		arg.Status,
 		arg.Rrule,
+		arg.Etag,
+		arg.Sequence,
 	)
 	var i ScheduledEvent
 	err := row.Scan(
@@ -177,6 +181,48 @@ func (q *Queries) DeleteCalendar(ctx context.Context, arg DeleteCalendarParams) 
 	return err
 }
 
+const deleteEventByICalUID = `-- name: DeleteEventByICalUID :exec
+DELETE FROM scheduled_events
+WHERE user_id = $1 AND ical_uid = $2
+`
+
+type DeleteEventByICalUIDParams struct {
+	UserID  uuid.UUID   `json:"user_id"`
+	IcalUid pgtype.Text `json:"ical_uid"`
+}
+
+func (q *Queries) DeleteEventByICalUID(ctx context.Context, arg DeleteEventByICalUIDParams) error {
+	_, err := q.db.Exec(ctx, deleteEventByICalUID, arg.UserID, arg.IcalUid)
+	return err
+}
+
+const getCalendar = `-- name: GetCalendar :one
+SELECT id, user_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
+WHERE id = $1 AND user_id = $2 LIMIT 1
+`
+
+type GetCalendarParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetCalendar(ctx context.Context, arg GetCalendarParams) (Calendar, error) {
+	row := q.db.QueryRow(ctx, getCalendar, arg.ID, arg.UserID)
+	var i Calendar
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Color,
+		&i.Description,
+		&i.SyncToken,
+		&i.SupportedComponents,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getEventByICalUID = `-- name: GetEventByICalUID :one
 SELECT id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at FROM scheduled_events
 WHERE user_id = $1 AND ical_uid = $2 LIMIT 1
@@ -239,6 +285,59 @@ func (q *Queries) ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calend
 			&i.Description,
 			&i.SyncToken,
 			&i.SupportedComponents,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEventsByCalendar = `-- name: ListEventsByCalendar :many
+SELECT id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at FROM scheduled_events
+WHERE user_id = $1 AND calendar_id = $2
+ORDER BY start_at ASC
+`
+
+type ListEventsByCalendarParams struct {
+	UserID     uuid.UUID   `json:"user_id"`
+	CalendarID pgtype.UUID `json:"calendar_id"`
+}
+
+func (q *Queries) ListEventsByCalendar(ctx context.Context, arg ListEventsByCalendarParams) ([]ScheduledEvent, error) {
+	rows, err := q.db.Query(ctx, listEventsByCalendar, arg.UserID, arg.CalendarID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ScheduledEvent
+	for rows.Next() {
+		var i ScheduledEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.CalendarID,
+			&i.Title,
+			&i.Description,
+			&i.Location,
+			&i.StartAt,
+			&i.EndAt,
+			&i.IsAllDay,
+			&i.ExternalEventID,
+			&i.IcalUid,
+			&i.Etag,
+			&i.Sequence,
+			&i.Status,
+			&i.Transparency,
+			&i.Rrule,
+			&i.Dtstamp,
+			&i.Url,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -389,4 +488,79 @@ func (q *Queries) ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]L
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateEventByICalUID = `-- name: UpdateEventByICalUID :one
+UPDATE scheduled_events
+SET
+    title = COALESCE($3, title),
+    description = COALESCE($4, description),
+    location = COALESCE($5, location),
+    start_at = COALESCE($6, start_at),
+    end_at = COALESCE($7, end_at),
+    is_all_day = COALESCE($8, is_all_day),
+    status = COALESCE($9, status),
+    rrule = COALESCE($10, rrule),
+    etag = COALESCE($11, etag),
+    sequence = COALESCE($12, sequence),
+    updated_at = NOW()
+WHERE user_id = $1 AND ical_uid = $2
+RETURNING id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at
+`
+
+type UpdateEventByICalUIDParams struct {
+	UserID      uuid.UUID          `json:"user_id"`
+	IcalUid     pgtype.Text        `json:"ical_uid"`
+	Title       pgtype.Text        `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	Location    pgtype.Text        `json:"location"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	IsAllDay    pgtype.Bool        `json:"is_all_day"`
+	Status      pgtype.Text        `json:"status"`
+	Rrule       pgtype.Text        `json:"rrule"`
+	Etag        pgtype.Text        `json:"etag"`
+	Sequence    pgtype.Int4        `json:"sequence"`
+}
+
+func (q *Queries) UpdateEventByICalUID(ctx context.Context, arg UpdateEventByICalUIDParams) (ScheduledEvent, error) {
+	row := q.db.QueryRow(ctx, updateEventByICalUID,
+		arg.UserID,
+		arg.IcalUid,
+		arg.Title,
+		arg.Description,
+		arg.Location,
+		arg.StartAt,
+		arg.EndAt,
+		arg.IsAllDay,
+		arg.Status,
+		arg.Rrule,
+		arg.Etag,
+		arg.Sequence,
+	)
+	var i ScheduledEvent
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ProjectID,
+		&i.CalendarID,
+		&i.Title,
+		&i.Description,
+		&i.Location,
+		&i.StartAt,
+		&i.EndAt,
+		&i.IsAllDay,
+		&i.ExternalEventID,
+		&i.IcalUid,
+		&i.Etag,
+		&i.Sequence,
+		&i.Status,
+		&i.Transparency,
+		&i.Rrule,
+		&i.Dtstamp,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
