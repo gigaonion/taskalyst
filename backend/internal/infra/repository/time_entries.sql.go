@@ -14,9 +14,9 @@ import (
 
 const createTimeEntry = `-- name: CreateTimeEntry :one
 INSERT INTO time_entries (
-    user_id, project_id, task_id, started_at, note
+  user_id, project_id, task_id, started_at,ended_at, note
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5 ,$6
 ) RETURNING id, user_id, project_id, task_id, started_at, ended_at, note, is_auto_generated, created_at, updated_at
 `
 
@@ -25,6 +25,7 @@ type CreateTimeEntryParams struct {
 	ProjectID uuid.UUID          `json:"project_id"`
 	TaskID    pgtype.UUID        `json:"task_id"`
 	StartedAt pgtype.Timestamptz `json:"started_at"`
+	EndedAt   pgtype.Timestamptz `json:"ended_at"`
 	Note      pgtype.Text        `json:"note"`
 }
 
@@ -34,6 +35,7 @@ func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams
 		arg.ProjectID,
 		arg.TaskID,
 		arg.StartedAt,
+		arg.EndedAt,
 		arg.Note,
 	)
 	var i TimeEntry

@@ -49,3 +49,7 @@ FROM timetable_slots ts
 JOIN projects p ON ts.project_id = p.id
 WHERE ts.user_id = $1
 ORDER BY ts.day_of_week, ts.start_time;
+
+-- name: DeleteCalendar :exec
+DELETE FROM calendars
+WHERE id = $1 AND user_id = $2;

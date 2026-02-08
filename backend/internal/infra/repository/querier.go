@@ -23,6 +23,7 @@ type Querier interface {
 	CreateTimetableSlot(ctx context.Context, arg CreateTimetableSlotParams) (TimetableSlot, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteApiToken(ctx context.Context, arg DeleteApiTokenParams) error
+	DeleteCalendar(ctx context.Context, arg DeleteCalendarParams) error
 	DeleteChecklistItem(ctx context.Context, id uuid.UUID) error
 	DeleteResult(ctx context.Context, arg DeleteResultParams) error
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) error

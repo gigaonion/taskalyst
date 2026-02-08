@@ -1,8 +1,8 @@
 -- name: CreateTimeEntry :one
 INSERT INTO time_entries (
-    user_id, project_id, task_id, started_at, note
+  user_id, project_id, task_id, started_at,ended_at, note
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5 ,$6
 ) RETURNING *;
 
 -- name: StopTimeEntry :one

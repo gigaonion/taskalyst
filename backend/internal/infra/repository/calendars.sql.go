@@ -162,6 +162,21 @@ func (q *Queries) CreateTimetableSlot(ctx context.Context, arg CreateTimetableSl
 	return i, err
 }
 
+const deleteCalendar = `-- name: DeleteCalendar :exec
+DELETE FROM calendars
+WHERE id = $1 AND user_id = $2
+`
+
+type DeleteCalendarParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteCalendar(ctx context.Context, arg DeleteCalendarParams) error {
+	_, err := q.db.Exec(ctx, deleteCalendar, arg.ID, arg.UserID)
+	return err
+}
+
 const getEventByICalUID = `-- name: GetEventByICalUID :one
 SELECT id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at FROM scheduled_events
 WHERE user_id = $1 AND ical_uid = $2 LIMIT 1

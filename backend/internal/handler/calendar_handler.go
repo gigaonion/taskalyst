@@ -17,12 +17,20 @@ func NewCalendarHandler(u usecase.CalendarUsecase) *CalendarHandler {
 	return &CalendarHandler{u: u}
 }
 
+type CreateCalendarRequest struct {
+	Name        string `json:"name" validate:"required"`
+	Color       string `json:"color"`
+	Description string `json:"description"`
+}
+
 type CreateEventRequest struct {
-	ProjectID string    `json:"project_id" validate:"required"`
-	Title     string    `json:"title" validate:"required"`
-	StartAt   time.Time `json:"start_at" validate:"required"`
-	EndAt     time.Time `json:"end_at" validate:"required"`
-	IsAllDay  bool      `json:"is_all_day"`
+	ProjectID   string    `json:"project_id" validate:"required"`
+	Title       string    `json:"title" validate:"required"`
+	Description string    `json:"description"`
+	Location    string    `json:"location"`
+	StartAt     time.Time `json:"start_at" validate:"required"`
+	EndAt       time.Time `json:"end_at" validate:"required"`
+	IsAllDay    bool      `json:"is_all_day"`
 }
 
 type CreateTimetableSlotRequest struct {
@@ -41,13 +49,12 @@ func (h *CalendarHandler) CreateEvent(c echo.Context) error {
 	}
 
 	pid, _ := uuid.Parse(req.ProjectID)
-	event, err := h.u.CreateEvent(c.Request().Context(), userID, pid, req.Title, req.StartAt, req.EndAt, req.IsAllDay)
+	event, err := h.u.CreateEvent(c.Request().Context(), userID, pid, req.Title, req.Description, req.Location, req.StartAt, req.EndAt, req.IsAllDay)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusCreated, event)
 }
-
 func (h *CalendarHandler) ListEvents(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 	startStr := c.QueryParam("start")
@@ -104,4 +111,43 @@ func (h *CalendarHandler) SyncSchedule(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, map[string]string{"status": "synced"})
+}
+
+func (h *CalendarHandler) CreateCalendar(c echo.Context) error {
+	userID := c.Get("user_id").(uuid.UUID)
+	var req CreateCalendarRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
+	calendar, err := h.u.CreateCalendar(c.Request().Context(), userID, req.Name, req.Color, req.Description)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusCreated, calendar)
+}
+
+func (h *CalendarHandler) ListCalendars(c echo.Context) error {
+	userID := c.Get("user_id").(uuid.UUID)
+	calendars, err := h.u.ListCalendars(c.Request().Context(), userID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusOK, calendars)
+}
+
+func (h *CalendarHandler) DeleteCalendar(c echo.Context) error {
+	userID := c.Get("user_id").(uuid.UUID)
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid calendar id")
+	}
+
+	if err := h.u.DeleteCalendar(c.Request().Context(), userID, id); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return c.NoContent(http.StatusNoContent)
 }

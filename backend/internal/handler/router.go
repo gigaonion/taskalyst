@@ -55,5 +55,13 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 	api.POST("/results", resultHandler.Create)
   api.GET("/results", resultHandler.List)
   api.DELETE("/results/:id", resultHandler.Delete)
+    api.POST("/events", calendarHandler.CreateEvent)
+    api.GET("/events", calendarHandler.ListEvents)
+
+    api.POST("/calendars", calendarHandler.CreateCalendar)
+    api.GET("/calendars", calendarHandler.ListCalendars)
+    api.DELETE("/calendars/:id", calendarHandler.DeleteCalendar)
+
+    api.POST("/timetable", calendarHandler.CreateTimetableSlot)
 	
 }
