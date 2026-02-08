@@ -13,6 +13,7 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 	authGroup := e.Group("/auth")
 	authGroup.POST("/signup", userHandler.SignUp)
 	authGroup.POST("/login", userHandler.Login)
+	authGroup.POST("/refresh", userHandler.Refresh)
 
 	api := e.Group("/api")
 	api.Use(middleware.AuthMiddleware(cfg, repo))

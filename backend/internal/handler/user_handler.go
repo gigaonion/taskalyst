@@ -27,6 +27,10 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 type UserResponse struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
@@ -70,6 +74,25 @@ func (h *UserHandler) Login(c echo.Context) error {
 	}
 
 	tokenPair, err := h.u.Login(c.Request().Context(), req.Email, req.Password)
+	if err != nil {
+		return HandleError(c, err)
+	}
+
+	return c.JSON(http.StatusOK, tokenPair)
+}
+
+// Refresh
+func (h *UserHandler) Refresh(c echo.Context) error {
+	var req RefreshRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
+	tokenPair, err := h.u.RefreshToken(c.Request().Context(), req.RefreshToken)
 	if err != nil {
 		return HandleError(c, err)
 	}

@@ -18,6 +18,7 @@ import (
 type UserUsecase interface {
 	SignUp(ctx context.Context, email, plainPassword, name string) (*repository.User, error)
 	Login(ctx context.Context, email, plainPassword string) (*auth.TokenPair, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*auth.TokenPair, error)
 	GetProfile(ctx context.Context, id uuid.UUID) (*repository.User, error)
 }
 
@@ -101,6 +102,32 @@ func (u *userUsecase) Login(ctx context.Context, email, plainPassword string) (*
 
 	return tokens, nil
 }
+
+func (u *userUsecase) RefreshToken(ctx context.Context, refreshToken string) (*auth.TokenPair, error) {
+	// リフレッシュトークンの検証
+	claims, err := auth.ValidateToken(refreshToken, u.config.JWTRefreshSecret)
+	if err != nil {
+		return nil, NewUnauthorizedError("invalid refresh token")
+	}
+
+	// ユーザーの存在確認
+	user, err := u.repo.GetUserByID(ctx, claims.UserID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, NewUnauthorizedError("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// 新しいトークンペアの生成
+	tokens, err := auth.GenerateTokenPair(user.ID, string(user.Role), u.config.JWTSecret, u.config.JWTRefreshSecret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	return tokens, nil
+}
+
 func (u *userUsecase) GetProfile(ctx context.Context, id uuid.UUID) (*repository.User, error) {
 	user, err := u.repo.GetUserByID(ctx, id)
 	if err != nil {
