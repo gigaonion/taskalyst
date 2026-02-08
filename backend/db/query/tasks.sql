@@ -36,7 +36,8 @@ UPDATE tasks
 SET
     title = COALESCE(sqlc.narg('title'), title),
     note_markdown = COALESCE(sqlc.narg('note_markdown'), note_markdown),
-    status = COALESCE(sqlc.narg('status'), status),
+    status = $3,
+    completed_at = $4,
     due_date = COALESCE(sqlc.narg('due_date'), due_date),
     priority = COALESCE(sqlc.narg('priority'), priority),
     updated_at = NOW()

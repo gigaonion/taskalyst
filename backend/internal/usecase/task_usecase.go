@@ -82,10 +82,17 @@ func (u *taskUsecase) ListTasks(ctx context.Context, userID uuid.UUID, projectID
 }
 
 func (u *taskUsecase) UpdateTaskStatus(ctx context.Context, userID, taskID uuid.UUID, status repository.TaskStatus) (*repository.Task, error) {
+	var completedAt pgtype.Timestamptz
+	if status == repository.TaskStatusDONE {
+		completedAt = toTimestamp(ptr(time.Now()))
+	} else {
+		completedAt = pgtype.Timestamptz{Valid: false}
+	}
 	arg := repository.UpdateTaskParams{
 		ID:     taskID,
 		UserID: userID,
-		Status: repository.NullTaskStatus{TaskStatus: status, Valid: true},
+		Status: status,
+		CompletedAt: completedAt,
 	}
 	
 	task, err := u.repo.UpdateTask(ctx, arg)

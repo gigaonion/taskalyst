@@ -295,11 +295,12 @@ func (q *Queries) UpdateChecklistItem(ctx context.Context, arg UpdateChecklistIt
 const updateTask = `-- name: UpdateTask :one
 UPDATE tasks
 SET
-    title = COALESCE($3, title),
-    note_markdown = COALESCE($4, note_markdown),
-    status = COALESCE($5, status),
-    due_date = COALESCE($6, due_date),
-    priority = COALESCE($7, priority),
+    title = COALESCE($5, title),
+    note_markdown = COALESCE($6, note_markdown),
+    status = $3,
+    completed_at = $4,
+    due_date = COALESCE($7, due_date),
+    priority = COALESCE($8, priority),
     updated_at = NOW()
 WHERE id = $1 AND user_id = $2
 RETURNING id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at
@@ -308,9 +309,10 @@ RETURNING id, user_id, project_id, title, note_markdown, status, due_date, prior
 type UpdateTaskParams struct {
 	ID           uuid.UUID          `json:"id"`
 	UserID       uuid.UUID          `json:"user_id"`
+	Status       TaskStatus         `json:"status"`
+	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
 	Title        pgtype.Text        `json:"title"`
 	NoteMarkdown pgtype.Text        `json:"note_markdown"`
-	Status       NullTaskStatus     `json:"status"`
 	DueDate      pgtype.Timestamptz `json:"due_date"`
 	Priority     pgtype.Int2        `json:"priority"`
 }
@@ -319,9 +321,10 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 	row := q.db.QueryRow(ctx, updateTask,
 		arg.ID,
 		arg.UserID,
+		arg.Status,
+		arg.CompletedAt,
 		arg.Title,
 		arg.NoteMarkdown,
-		arg.Status,
 		arg.DueDate,
 		arg.Priority,
 	)
