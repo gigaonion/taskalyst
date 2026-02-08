@@ -1,8 +1,8 @@
 -- name: CreateProject :one
 INSERT INTO projects (
-    user_id, category_id, title, description, is_archived
+    user_id, category_id, title, description, color, is_archived
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: GetProject :one

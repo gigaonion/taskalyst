@@ -13,7 +13,7 @@ import (
 type ProjectUsecase interface {
 	CreateCategory(ctx context.Context, userID uuid.UUID, name string, rootType repository.RootCategoryType, color string) (*repository.Category, error)
 	ListCategories(ctx context.Context, userID uuid.UUID) ([]repository.Category, error)
-	CreateProject(ctx context.Context, userID, categoryID uuid.UUID, title, description string) (*repository.Project, error)
+	CreateProject(ctx context.Context, userID, categoryID uuid.UUID, title, description, color string) (*repository.Project, error)
 	ListProjects(ctx context.Context, userID uuid.UUID, isArchived *bool) ([]repository.ListProjectsRow, error)
 }
 
@@ -57,12 +57,13 @@ func (u *projectUsecase) ListCategories(ctx context.Context, userID uuid.UUID) (
 
 // --- Project ---
 
-func (u *projectUsecase) CreateProject(ctx context.Context, userID, categoryID uuid.UUID, title, description string) (*repository.Project, error) {
+func (u *projectUsecase) CreateProject(ctx context.Context, userID, categoryID uuid.UUID, title, description, color string) (*repository.Project, error) {
 	arg := repository.CreateProjectParams{
 		UserID:      userID,
 		CategoryID:  categoryID,
 		Title:       title,
 		Description: toTextFromStr(description), // string -> pgtype.Text
+		Color:       toTextFromStr(color),
 		IsArchived:  false,
 	}
 

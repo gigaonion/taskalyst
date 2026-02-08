@@ -276,7 +276,8 @@ func (h *CalDavHandler) CalendarCollection(c echo.Context) error {
 		},
 	}
 
-	if depth == "1" {
+	// RFC 4918: If Depth is omitted, it should be treated as infinity.
+	if depth == "1" || depth == "infinity" || depth == "" {
 		// List all events and tasks
 		events, _ := h.u.GetEventsByRange(c.Request().Context(), userID, calendarID, time.Time{}, time.Time{})
 		tasks, _ := h.u.GetTasksByRange(c.Request().Context(), userID, calendarID, time.Time{}, time.Time{})

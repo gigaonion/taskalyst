@@ -54,7 +54,9 @@ func AuthMiddleware(cfg *config.Config, repo *repository.Queries) echo.Middlewar
 				}
 			}
 
-			c.Response().Header().Set("WWW-Authenticate", `Basic realm="Taskalyst"`)
+			if strings.HasPrefix(c.Path(), "/dav") {
+				c.Response().Header().Set("WWW-Authenticate", `Basic realm="Taskalyst"`)
+			}
 			return echo.NewHTTPError(http.StatusUnauthorized, "missing or invalid credentials")
 		}
 	}

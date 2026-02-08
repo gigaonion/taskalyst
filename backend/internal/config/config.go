@@ -6,10 +6,12 @@ import (
 )
 
 type Config struct {
-	Port      string `env:"PORT" envDefault:"8080"`
-	DBURL     string `env:"DB_URL,required"`
-	JWTSecret string `env:"JWT_SECRET,required"`
-	GoEnv     string `env:"GO_ENV" envDefault:"development"`
+	Port             string   `env:"PORT" envDefault:"8080"`
+	DBURL            string   `env:"DB_URL,required"`
+	JWTSecret        string   `env:"JWT_SECRET,required"`
+	JWTRefreshSecret string   `env:"JWT_REFRESH_SECRET,required"`
+	GoEnv            string   `env:"GO_ENV" envDefault:"development"`
+	AllowedOrigins   []string `env:"ALLOWED_ORIGINS" envDefault:"*"`
 }
 
 func Load() (*Config, error) {

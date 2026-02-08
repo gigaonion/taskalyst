@@ -32,5 +32,5 @@ func HandleError(c echo.Context, err error) error {
 	}
 
 	// Default to internal server error
-	return HandleError(c, err)
+	return echo.NewHTTPError(http.StatusInternalServerError, "Internal Server Error")
 }

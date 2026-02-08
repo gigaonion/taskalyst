@@ -27,6 +27,7 @@ type CreateProjectRequest struct {
 	CategoryID  string `json:"category_id" validate:"required"`
 	Title       string `json:"title" validate:"required"`
 	Description string `json:"description"`
+	Color       string `json:"color"`
 }
 
 func (h *ProjectHandler) CreateCategory(c echo.Context) error {
@@ -78,7 +79,7 @@ func (h *ProjectHandler) CreateProject(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid category id")
 	}
 
-	project, err := h.u.CreateProject(c.Request().Context(), userID, catID, req.Title, req.Description)
+	project, err := h.u.CreateProject(c.Request().Context(), userID, catID, req.Title, req.Description, req.Color)
 	if err != nil {
 		return HandleError(c, err)
 	}

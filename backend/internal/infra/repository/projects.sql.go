@@ -48,9 +48,9 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (
-    user_id, category_id, title, description, is_archived
+    user_id, category_id, title, description, color, is_archived
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 ) RETURNING id, user_id, category_id, title, description, color, is_archived, created_at, updated_at
 `
 
@@ -59,6 +59,7 @@ type CreateProjectParams struct {
 	CategoryID  uuid.UUID   `json:"category_id"`
 	Title       string      `json:"title"`
 	Description pgtype.Text `json:"description"`
+	Color       pgtype.Text `json:"color"`
 	IsArchived  bool        `json:"is_archived"`
 }
 
@@ -68,6 +69,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		arg.CategoryID,
 		arg.Title,
 		arg.Description,
+		arg.Color,
 		arg.IsArchived,
 	)
 	var i Project

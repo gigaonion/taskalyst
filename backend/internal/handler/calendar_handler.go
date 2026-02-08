@@ -21,6 +21,7 @@ type CreateCalendarRequest struct {
 	Name        string `json:"name" validate:"required"`
 	Color       string `json:"color"`
 	Description string `json:"description"`
+	ProjectID   string `json:"project_id"`
 }
 
 type CreateEventRequest struct {
@@ -128,7 +129,15 @@ func (h *CalendarHandler) CreateCalendar(c echo.Context) error {
 		return err
 	}
 
-	calendar, err := h.u.CreateCalendar(c.Request().Context(), userID, req.Name, req.Color, req.Description)
+	var pid *uuid.UUID
+	if req.ProjectID != "" {
+		p, err := uuid.Parse(req.ProjectID)
+		if err == nil {
+			pid = &p
+		}
+	}
+
+	calendar, err := h.u.CreateCalendar(c.Request().Context(), userID, req.Name, req.Color, req.Description, pid)
 	if err != nil {
 		return HandleError(c, err)
 	}

@@ -94,7 +94,7 @@ func (u *userUsecase) Login(ctx context.Context, email, plainPassword string) (*
 	}
 
 	// トークンの生成
-	tokens, err := auth.GenerateTokenPair(user.ID, string(user.Role), u.config.JWTSecret)
+	tokens, err := auth.GenerateTokenPair(user.ID, string(user.Role), u.config.JWTSecret, u.config.JWTRefreshSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}

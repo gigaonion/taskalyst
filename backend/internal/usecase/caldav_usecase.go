@@ -192,15 +192,29 @@ func (u *calDavUsecase) ExportTaskToICal(ctx context.Context, userID uuid.UUID, 
 func (u *calDavUsecase) ImportFromICal(ctx context.Context, userID, calendarID uuid.UUID, icalData string) error {
 	dec := ical.NewDecoder(strings.NewReader(icalData))
 
-	// Pre-fetch default project once
-	defaultProject, err := u.repo.GetDefaultProject(ctx, userID)
+	// Get calendar to check if it has a linked project
+	calInfo, err := u.repo.GetCalendar(ctx, repository.GetCalendarParams{
+		ID:     calendarID,
+		UserID: userID,
+	})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return NewNotFoundError("no project found to import data")
-		}
-		return fmt.Errorf("failed to get default project: %w", err)
+		return fmt.Errorf("failed to get calendar: %w", err)
 	}
-	defaultProjectID := defaultProject.ID
+
+	var targetProjectID uuid.UUID
+	if calInfo.ProjectID.Valid {
+		targetProjectID = calInfo.ProjectID.Bytes
+	} else {
+		// Fallback to default project
+		defaultProject, err := u.repo.GetDefaultProject(ctx, userID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return NewNotFoundError("no project found to import data")
+			}
+			return fmt.Errorf("failed to get default project: %w", err)
+		}
+		targetProjectID = defaultProject.ID
+	}
 
 	return u.txManager.ReadCommitted(ctx, func(q *repository.Queries) error {
 		for {
@@ -240,7 +254,7 @@ func (u *calDavUsecase) ImportFromICal(ctx context.Context, userID, calendarID u
 					// Create
 					_, err = q.CreateEvent(ctx, repository.CreateEventParams{
 						UserID:      userID,
-						ProjectID:   defaultProjectID,
+						ProjectID:   targetProjectID,
 						CalendarID:  toUUID(&calendarID),
 						Title:       summary,
 						Description: toTextFromStr(description),
@@ -286,7 +300,7 @@ func (u *calDavUsecase) ImportFromICal(ctx context.Context, userID, calendarID u
 					// Create
 					_, err = q.CreateTask(ctx, repository.CreateTaskParams{
 						UserID:       userID,
-						ProjectID:    defaultProjectID,
+						ProjectID:    targetProjectID,
 						Title:        summary,
 						NoteMarkdown: toTextFromStr(description),
 						DueDate:      toTimestamp(&due),

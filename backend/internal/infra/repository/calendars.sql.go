@@ -14,10 +14,10 @@ import (
 
 const createCalendar = `-- name: CreateCalendar :one
 INSERT INTO calendars (
-    user_id, name, color, description
+    user_id, name, color, description, project_id
 ) VALUES (
-    $1, $2, $3, $4
-) RETURNING id, user_id, name, color, description, sync_token, supported_components, created_at, updated_at
+    $1, $2, $3, $4, $5
+) RETURNING id, user_id, project_id, name, color, description, sync_token, supported_components, created_at, updated_at
 `
 
 type CreateCalendarParams struct {
@@ -25,6 +25,7 @@ type CreateCalendarParams struct {
 	Name        string      `json:"name"`
 	Color       pgtype.Text `json:"color"`
 	Description pgtype.Text `json:"description"`
+	ProjectID   pgtype.UUID `json:"project_id"`
 }
 
 func (q *Queries) CreateCalendar(ctx context.Context, arg CreateCalendarParams) (Calendar, error) {
@@ -33,11 +34,13 @@ func (q *Queries) CreateCalendar(ctx context.Context, arg CreateCalendarParams) 
 		arg.Name,
 		arg.Color,
 		arg.Description,
+		arg.ProjectID,
 	)
 	var i Calendar
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Color,
 		&i.Description,
@@ -197,7 +200,7 @@ func (q *Queries) DeleteEventByICalUID(ctx context.Context, arg DeleteEventByICa
 }
 
 const getCalendar = `-- name: GetCalendar :one
-SELECT id, user_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
+SELECT id, user_id, project_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
 WHERE id = $1 AND user_id = $2 LIMIT 1
 `
 
@@ -212,6 +215,7 @@ func (q *Queries) GetCalendar(ctx context.Context, arg GetCalendarParams) (Calen
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Color,
 		&i.Description,
@@ -224,7 +228,7 @@ func (q *Queries) GetCalendar(ctx context.Context, arg GetCalendarParams) (Calen
 }
 
 const getDefaultCalendar = `-- name: GetDefaultCalendar :one
-SELECT id, user_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
+SELECT id, user_id, project_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
 WHERE user_id = $1
 ORDER BY created_at
 LIMIT 1
@@ -236,6 +240,7 @@ func (q *Queries) GetDefaultCalendar(ctx context.Context, userID uuid.UUID) (Cal
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.ProjectID,
 		&i.Name,
 		&i.Color,
 		&i.Description,
@@ -287,7 +292,7 @@ func (q *Queries) GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDPa
 }
 
 const listCalendars = `-- name: ListCalendars :many
-SELECT id, user_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
+SELECT id, user_id, project_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
 WHERE user_id = $1
 ORDER BY created_at
 `
@@ -304,6 +309,7 @@ func (q *Queries) ListCalendars(ctx context.Context, userID uuid.UUID) ([]Calend
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
+			&i.ProjectID,
 			&i.Name,
 			&i.Color,
 			&i.Description,

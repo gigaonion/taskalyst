@@ -1,8 +1,8 @@
 -- name: CreateCalendar :one
 INSERT INTO calendars (
-    user_id, name, color, description
+    user_id, name, color, description, project_id
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: ListCalendars :many

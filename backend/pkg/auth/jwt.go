@@ -19,15 +19,15 @@ type TokenPair struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func GenerateTokenPair(userID uuid.UUID, role string, secret string) (*TokenPair, error) {
+func GenerateTokenPair(userID uuid.UUID, role string, accessSecret, refreshSecret string) (*TokenPair, error) {
 	// アクセストークン
-	accessToken, err := generateToken(userID, role, secret, 15*time.Minute)
+	accessToken, err := generateToken(userID, role, accessSecret, 15*time.Minute)
 	if err != nil {
 		return nil, err
 	}
 
 	// リフレッシュトークン
-	refreshToken, err := generateToken(userID, role, secret, 7*24*time.Hour)
+	refreshToken, err := generateToken(userID, role, refreshSecret, 7*24*time.Hour)
 	if err != nil {
 		return nil, err
 	}

@@ -154,6 +154,7 @@ type ApiToken struct {
 type Calendar struct {
 	ID                  uuid.UUID          `json:"id"`
 	UserID              uuid.UUID          `json:"user_id"`
+	ProjectID           pgtype.UUID        `json:"project_id"`
 	Name                string             `json:"name"`
 	Color               pgtype.Text        `json:"color"`
 	Description         pgtype.Text        `json:"description"`

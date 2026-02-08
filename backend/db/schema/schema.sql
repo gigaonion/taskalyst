@@ -41,6 +41,7 @@ CREATE TABLE categories(
 CREATE TABLE calendars (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
     color VARCHAR(7),
     description TEXT,

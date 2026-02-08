@@ -14,7 +14,7 @@ import (
 )
 
 type CalendarUsecase interface {
-	CreateCalendar(ctx context.Context, userID uuid.UUID, name, color, description string) (*repository.Calendar, error)
+	CreateCalendar(ctx context.Context, userID uuid.UUID, name, color, description string, projectID *uuid.UUID) (*repository.Calendar, error)
 	ListCalendars(ctx context.Context, userID uuid.UUID) ([]repository.Calendar, error)
 	DeleteCalendar(ctx context.Context, userID, calendarID uuid.UUID) error
 
@@ -148,12 +148,13 @@ func mergeDateAndTime(date time.Time, micros int64) time.Time {
 	base := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	return base.Add(time.Duration(micros) * time.Microsecond)
 }
-func (u *calendarUsecase) CreateCalendar(ctx context.Context, userID uuid.UUID, name, color, description string) (*repository.Calendar, error) {
+func (u *calendarUsecase) CreateCalendar(ctx context.Context, userID uuid.UUID, name, color, description string, projectID *uuid.UUID) (*repository.Calendar, error) {
 	arg := repository.CreateCalendarParams{
 		UserID:      userID,
 		Name:        name,
 		Color:       toTextFromStr(color),
 		Description: toTextFromStr(description),
+		ProjectID:   toUUID(projectID),
 	}
 	calendar, err := u.repo.CreateCalendar(ctx, arg)
 	if err != nil {
