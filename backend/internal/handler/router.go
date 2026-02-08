@@ -7,7 +7,7 @@ import (
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
-func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler, timeHandler *TimeHandler, apiTokenHandler *ApiTokenHandler, cfg *config.Config, calendarHandler *CalendarHandler, repo *repository.Queries) {
+func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler, timeHandler *TimeHandler, apiTokenHandler *ApiTokenHandler, cfg *config.Config, calendarHandler *CalendarHandler,resultHandler *ResultHandler, repo *repository.Queries) {
 	// Auth Group
 	authGroup := e.Group("/auth")
 	authGroup.POST("/signup", userHandler.SignUp)
@@ -51,5 +51,9 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 	api.DELETE("/api-tokens/:id", apiTokenHandler.Revoke)
 
 	api.POST("/sync/schedule", calendarHandler.SyncSchedule)
+
+	api.POST("/results", resultHandler.Create)
+  api.GET("/results", resultHandler.List)
+  api.DELETE("/results/:id", resultHandler.Delete)
 	
 }

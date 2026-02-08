@@ -17,12 +17,14 @@ type Querier interface {
 	CreateChecklistItem(ctx context.Context, arg CreateChecklistItemParams) (ChecklistItem, error)
 	CreateEvent(ctx context.Context, arg CreateEventParams) (ScheduledEvent, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
+	CreateResult(ctx context.Context, arg CreateResultParams) (Result, error)
 	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
 	CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (TimeEntry, error)
 	CreateTimetableSlot(ctx context.Context, arg CreateTimetableSlotParams) (TimetableSlot, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteApiToken(ctx context.Context, arg DeleteApiTokenParams) error
 	DeleteChecklistItem(ctx context.Context, id uuid.UUID) error
+	DeleteResult(ctx context.Context, arg DeleteResultParams) error
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) error
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
 	// GROWTHカテゴリの実績のみを日別集計
@@ -40,6 +42,7 @@ type Querier interface {
 	ListChecklistItems(ctx context.Context, taskID uuid.UUID) ([]ChecklistItem, error)
 	ListEventsByRange(ctx context.Context, arg ListEventsByRangeParams) ([]ListEventsByRangeRow, error)
 	ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error)
+	ListResults(ctx context.Context, arg ListResultsParams) ([]ListResultsRow, error)
 	// タスクと同時に、チェックリストの進捗を取得
 	ListTasksWithStats(ctx context.Context, arg ListTasksWithStatsParams) ([]ListTasksWithStatsRow, error)
 	ListTimeEntries(ctx context.Context, arg ListTimeEntriesParams) ([]ListTimeEntriesRow, error)
