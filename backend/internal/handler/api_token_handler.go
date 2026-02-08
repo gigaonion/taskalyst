@@ -3,19 +3,17 @@ package handler
 import (
 	"net/http"
 
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
-	"github.com/gigaonion/taskalyst/backend/pkg/auth"
+	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
 )
 
 type ApiTokenHandler struct {
-	repo *repository.Queries // Usecase層を飛ばして簡易実装する場合
+	u usecase.ApiTokenUsecase
 }
 
-func NewApiTokenHandler(repo *repository.Queries) *ApiTokenHandler {
-	return &ApiTokenHandler{repo: repo}
+func NewApiTokenHandler(u usecase.ApiTokenUsecase) *ApiTokenHandler {
+	return &ApiTokenHandler{u: u}
 }
 
 type CreateTokenRequest struct {
@@ -33,19 +31,7 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 		return err
 	}
 
-	// Generate
-	rawToken, tokenHash, err := auth.GeneratePAT()
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to generate token")
-	}
-
-	// Save to DB
-	_, err = h.repo.CreateApiToken(c.Request().Context(), repository.CreateApiTokenParams{
-		UserID:    userID,
-		Name:      req.Name,
-		TokenHash: tokenHash,
-		ExpiresAt: pgtype.Timestamptz{Valid: false},
-	})
+	rawToken, _, err := h.u.Create(c.Request().Context(), userID, req.Name)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -59,7 +45,7 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 
 func (h *ApiTokenHandler) List(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
-	tokens, err := h.repo.ListApiTokens(c.Request().Context(), userID)
+	tokens, err := h.u.List(c.Request().Context(), userID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
@@ -73,9 +59,7 @@ func (h *ApiTokenHandler) Revoke(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
 
-	if err := h.repo.DeleteApiToken(c.Request().Context(), repository.DeleteApiTokenParams{
-		ID: id, UserID: userID,
-	}); err != nil {
+	if err := h.u.Revoke(c.Request().Context(), userID, id); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return c.NoContent(http.StatusNoContent)

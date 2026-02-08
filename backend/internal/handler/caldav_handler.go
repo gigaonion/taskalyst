@@ -452,48 +452,113 @@ func (h *CalDavHandler) buildPropstats(requested *Prop, available Prop) []Propst
 	}
 
 	found := Prop{}
-	missing := []string{}
+	notFound := Prop{}
+	hasFound := false
+	hasNotFound := false
 
 	// Check each requested property
-	// This is a simplified manual mapping. In a more complex server, reflection or a map would be used.
-
+	// Displayname
 	if requested.Displayname != "" {
 		if available.Displayname != "" {
 			found.Displayname = available.Displayname
+			hasFound = true
+		} else {
+			notFound.Displayname = " " // Empty tag to indicate missing
+			hasNotFound = true
 		}
 	}
+
+	// Resourcetype
 	if requested.Resourcetype != nil {
-		found.Resourcetype = available.Resourcetype
+		if available.Resourcetype != nil {
+			found.Resourcetype = available.Resourcetype
+			hasFound = true
+		} else {
+			notFound.Resourcetype = &Resourcetype{}
+			hasNotFound = true
+		}
 	}
+
+	// CurrentUserPrincipal
 	if requested.CurrentUserPrincipal != nil {
-		found.CurrentUserPrincipal = available.CurrentUserPrincipal
-	}
-	if requested.CalendarHomeSet != nil {
-		found.CalendarHomeSet = available.CalendarHomeSet
-	}
-	if requested.SupportedCalendarComp != nil {
-		found.SupportedCalendarComp = available.SupportedCalendarComp
-	}
-	if requested.GetContentType != "" {
-		found.GetContentType = available.GetContentType
-	}
-	if requested.GetETag != "" {
-		found.GetETag = available.GetETag
+		if available.CurrentUserPrincipal != nil {
+			found.CurrentUserPrincipal = available.CurrentUserPrincipal
+			hasFound = true
+		} else {
+			notFound.CurrentUserPrincipal = &HrefProp{}
+			hasNotFound = true
+		}
 	}
 
-	// Always include resourcetype if it's there as it's fundamental
-	if found.Resourcetype == nil && available.Resourcetype != nil {
+	// CalendarHomeSet
+	if requested.CalendarHomeSet != nil {
+		if available.CalendarHomeSet != nil {
+			found.CalendarHomeSet = available.CalendarHomeSet
+			hasFound = true
+		} else {
+			notFound.CalendarHomeSet = &HrefProp{}
+			hasNotFound = true
+		}
+	}
+
+	// SupportedCalendarComp
+	if requested.SupportedCalendarComp != nil {
+		if available.SupportedCalendarComp != nil {
+			found.SupportedCalendarComp = available.SupportedCalendarComp
+			hasFound = true
+		} else {
+			notFound.SupportedCalendarComp = &SupportedCalendarComp{}
+			hasNotFound = true
+		}
+	}
+
+	// GetContentType
+	if requested.GetContentType != "" {
+		if available.GetContentType != "" {
+			found.GetContentType = available.GetContentType
+			hasFound = true
+		} else {
+			notFound.GetContentType = " "
+			hasNotFound = true
+		}
+	}
+
+	// GetETag
+	if requested.GetETag != "" {
+		if available.GetETag != "" {
+			found.GetETag = available.GetETag
+			hasFound = true
+		} else {
+			notFound.GetETag = " "
+			hasNotFound = true
+		}
+	}
+
+	// CalendarData
+	if requested.CalendarData != "" {
+		if available.CalendarData != "" {
+			found.CalendarData = available.CalendarData
+			hasFound = true
+		} else {
+			notFound.CalendarData = " "
+			hasNotFound = true
+		}
+	}
+
+	// Always include resourcetype if it's there as it's fundamental and found
+	if found.Resourcetype == nil && available.Resourcetype != nil && hasFound {
 		found.Resourcetype = available.Resourcetype
 	}
 
-	res := []Propstat{{Prop: found, Status: "HTTP/1.1 200 OK"}}
-
-	// Optional: add 404 for missing properties if required by client
-	if len(missing) > 0 {
-		// Simplified: not adding 404 for now to keep XML clean
+	var propstats []Propstat
+	if hasFound {
+		propstats = append(propstats, Propstat{Prop: found, Status: "HTTP/1.1 200 OK"})
+	}
+	if hasNotFound {
+		propstats = append(propstats, Propstat{Prop: notFound, Status: "HTTP/1.1 404 Not Found"})
 	}
 
-	return res
+	return propstats
 }
 
 func (h *CalDavHandler) xmlResponse(c echo.Context, code int, data interface{}) error {
