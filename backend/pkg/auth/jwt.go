@@ -38,7 +38,7 @@ func GenerateTokenPair(userID uuid.UUID, role string, secret string) (*TokenPair
 	}, nil
 }
 
-func generateToken(userID uuid.UUID, role, secret string, duration time.Duration) (string, error){
+func generateToken(userID uuid.UUID, role, secret string, duration time.Duration) (string, error) {
 	claims := &Claims{
 		UserID: userID,
 		Role:   role,

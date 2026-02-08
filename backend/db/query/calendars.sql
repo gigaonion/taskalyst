@@ -55,6 +55,14 @@ SELECT * FROM scheduled_events
 WHERE user_id = $1 AND calendar_id = $2
 ORDER BY start_at ASC;
 
+-- name: ListEventsByCalendarAndRange :many
+SELECT * FROM scheduled_events
+WHERE user_id = $1 
+  AND calendar_id = $2
+  AND end_at >= sqlc.arg('start_time')
+  AND start_at <= sqlc.arg('end_time')
+ORDER BY start_at ASC;
+
 -- name: GetCalendar :one
 SELECT * FROM calendars
 WHERE id = $1 AND user_id = $2 LIMIT 1;

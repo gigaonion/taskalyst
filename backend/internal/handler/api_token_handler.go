@@ -3,12 +3,13 @@ package handler
 import (
 	"net/http"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
+	"github.com/gigaonion/taskalyst/backend/pkg/auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
-	"github.com/gigaonion/taskalyst/backend/pkg/auth"
 )
+
 type ApiTokenHandler struct {
 	repo *repository.Queries // Usecase層を飛ばして簡易実装する場合
 }
@@ -28,6 +29,10 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
 	// Generate
 	rawToken, tokenHash, err := auth.GeneratePAT()
 	if err != nil {
@@ -39,7 +44,7 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 		UserID:    userID,
 		Name:      req.Name,
 		TokenHash: tokenHash,
-	ExpiresAt: pgtype.Timestamptz{Valid: false},
+		ExpiresAt: pgtype.Timestamptz{Valid: false},
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

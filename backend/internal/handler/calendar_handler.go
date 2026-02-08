@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 )
 
 type CalendarHandler struct {
@@ -48,6 +48,10 @@ func (h *CalendarHandler) CreateEvent(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
 	pid, _ := uuid.Parse(req.ProjectID)
 	event, err := h.u.CreateEvent(c.Request().Context(), userID, pid, req.Title, req.Description, req.Location, req.StartAt, req.EndAt, req.IsAllDay)
 	if err != nil {
@@ -77,8 +81,12 @@ func (h *CalendarHandler) CreateTimetableSlot(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
 	pid, _ := uuid.Parse(req.ProjectID)
-	
+
 	layout := "15:04"
 	start, _ := time.Parse(layout, req.StartTime)
 	end, _ := time.Parse(layout, req.EndTime)

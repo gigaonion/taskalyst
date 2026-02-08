@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/gigaonion/taskalyst/backend/internal/usecase"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
 type ProjectHandler struct {
@@ -17,7 +17,6 @@ func NewProjectHandler(u usecase.ProjectUsecase) *ProjectHandler {
 	return &ProjectHandler{u: u}
 }
 
-
 type CreateCategoryRequest struct {
 	Name     string `json:"name" validate:"required"`
 	RootType string `json:"root_type" validate:"required,oneof=GROWTH LIFE WORK HOBBY OTHER"`
@@ -25,15 +24,14 @@ type CreateCategoryRequest struct {
 }
 
 type CreateProjectRequest struct {
-	CategoryID string `json:"category_id" validate:"required"`
-	Title      string `json:"title" validate:"required"`
+	CategoryID  string `json:"category_id" validate:"required"`
+	Title       string `json:"title" validate:"required"`
 	Description string `json:"description"`
 }
 
-
 func (h *ProjectHandler) CreateCategory(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
-	
+
 	var req CreateCategoryRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
@@ -71,6 +69,10 @@ func (h *ProjectHandler) CreateProject(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
 	catID, err := uuid.Parse(req.CategoryID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid category id")
@@ -86,7 +88,7 @@ func (h *ProjectHandler) CreateProject(c echo.Context) error {
 
 func (h *ProjectHandler) ListProjects(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
-	
+
 	// ?archived=true
 	var isArchived *bool
 	if c.QueryParam("archived") == "true" {

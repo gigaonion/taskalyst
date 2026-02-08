@@ -3,8 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
-	"time"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"time"
 )
 
 func NewPool(ctx context.Context, connString string) (*pgxpool.Pool, error) {

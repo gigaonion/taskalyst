@@ -1,14 +1,14 @@
 package handler
 
 import (
-	"net/http"
-	"github.com/labstack/echo/v4"
 	"github.com/gigaonion/taskalyst/backend/internal/config"
 	"github.com/gigaonion/taskalyst/backend/internal/handler/middleware"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
+	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
-func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler, timeHandler *TimeHandler, apiTokenHandler *ApiTokenHandler, cfg *config.Config, calendarHandler *CalendarHandler,resultHandler *ResultHandler, caldavHandler *CalDavHandler, repo *repository.Queries) {
+func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *ProjectHandler, taskHandler *TaskHandler, timeHandler *TimeHandler, apiTokenHandler *ApiTokenHandler, cfg *config.Config, calendarHandler *CalendarHandler, resultHandler *ResultHandler, caldavHandler *CalDavHandler, repo *repository.Queries) {
 	// Auth Group
 	authGroup := e.Group("/auth")
 	authGroup.POST("/signup", userHandler.SignUp)
@@ -18,7 +18,7 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 	api.Use(middleware.AuthMiddleware(cfg, repo))
 
 	api.GET("/users/me", userHandler.GetMe)
-	
+
 	// API Tokens
 	api.POST("/tokens", apiTokenHandler.Create)
 	api.GET("/tokens", apiTokenHandler.List)
@@ -60,18 +60,26 @@ func RegisterRoutes(e *echo.Echo, userHandler *UserHandler, projectHandler *Proj
 	// CalDAV
 	dav := e.Group("/dav")
 	dav.Use(middleware.AuthMiddleware(cfg, repo))
-	dav.Match([]string{"OPTIONS"}, "", caldavHandler.Options)
-	dav.Match([]string{"PROPFIND"}, "", caldavHandler.Propfind)
-	dav.Match([]string{"PROPFIND"}, "/:calendarID", caldavHandler.Propfind)
-	dav.GET("/:calendarID", caldavHandler.GetCalendar)
-	dav.GET("/:calendarID/:resource", caldavHandler.GetResource)
-	dav.Match([]string{"PUT"}, "/:calendarID/:resource", caldavHandler.PutResource)
-	dav.Match([]string{"OPTIONS"}, "/:calendarID/:resource", caldavHandler.Options)
-	dav.Match([]string{"PROPFIND"}, "/:calendarID/:resource", caldavHandler.Propfind)
+
+	// Discovery and Principal
+	dav.Match([]string{"OPTIONS", "PROPFIND"}, "/principals/:userID", caldavHandler.Principal)
+	dav.Match([]string{"OPTIONS", "PROPFIND"}, "/principals/:userID/", caldavHandler.Principal)
+	dav.Match([]string{"OPTIONS", "PROPFIND"}, "/calendars/:userID", caldavHandler.CalendarHome)
+	dav.Match([]string{"OPTIONS", "PROPFIND"}, "/calendars/:userID/", caldavHandler.CalendarHome)
+
+	// Calendar Collection
+	dav.Match([]string{"OPTIONS", "PROPFIND", "REPORT"}, "/calendars/:userID/:calendarID", caldavHandler.CalendarCollection)
+	dav.Match([]string{"OPTIONS", "PROPFIND", "REPORT"}, "/calendars/:userID/:calendarID/", caldavHandler.CalendarCollection)
+	dav.GET("/calendars/:userID/:calendarID", caldavHandler.GetCalendar) // For manual download
+
+	// Calendar Resource
+	dav.Match([]string{"OPTIONS", "PROPFIND", "GET", "PUT", "DELETE"}, "/calendars/:userID/:calendarID/:resource", caldavHandler.CalendarResource)
 
 	// Well-known
 	e.GET("/.well-known/caldav", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/dav")
+		return c.Redirect(http.StatusMovedPermanently, "/dav/principals/")
 	})
-	
+	dav.Match([]string{"OPTIONS", "PROPFIND"}, "/principals/", caldavHandler.PrincipalDiscovery)
+	dav.Match([]string{"OPTIONS", "PROPFIND"}, "/principals", caldavHandler.PrincipalDiscovery)
+
 }

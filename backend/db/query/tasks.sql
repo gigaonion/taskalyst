@@ -50,6 +50,13 @@ SELECT * FROM tasks
 WHERE user_id = $1 AND calendar_id = $2
 ORDER BY created_at DESC;
 
+-- name: ListTasksByCalendarAndRange :many
+SELECT * FROM tasks
+WHERE user_id = $1
+  AND calendar_id = $2
+  AND (due_date IS NULL OR (due_date >= sqlc.arg('start_time') AND due_date <= sqlc.arg('end_time')))
+ORDER BY created_at DESC;
+
 -- name: GetTaskByICalUID :one
 SELECT * FROM tasks
 WHERE user_id = $1 AND ical_uid = $2 LIMIT 1;

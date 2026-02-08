@@ -46,10 +46,12 @@ type Querier interface {
 	ListCategories(ctx context.Context, userID uuid.UUID) ([]Category, error)
 	ListChecklistItems(ctx context.Context, taskID uuid.UUID) ([]ChecklistItem, error)
 	ListEventsByCalendar(ctx context.Context, arg ListEventsByCalendarParams) ([]ScheduledEvent, error)
+	ListEventsByCalendarAndRange(ctx context.Context, arg ListEventsByCalendarAndRangeParams) ([]ScheduledEvent, error)
 	ListEventsByRange(ctx context.Context, arg ListEventsByRangeParams) ([]ListEventsByRangeRow, error)
 	ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error)
 	ListResults(ctx context.Context, arg ListResultsParams) ([]ListResultsRow, error)
 	ListTasksByCalendar(ctx context.Context, arg ListTasksByCalendarParams) ([]Task, error)
+	ListTasksByCalendarAndRange(ctx context.Context, arg ListTasksByCalendarAndRangeParams) ([]Task, error)
 	// タスクと同時に、チェックリストの進捗を取得
 	ListTasksWithStats(ctx context.Context, arg ListTasksWithStatsParams) ([]ListTasksWithStatsRow, error)
 	ListTimeEntries(ctx context.Context, arg ListTimeEntriesParams) ([]ListTimeEntriesRow, error)

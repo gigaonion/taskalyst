@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
 type ProjectUsecase interface {
@@ -24,24 +24,6 @@ func NewProjectUsecase(repo *repository.Queries) ProjectUsecase {
 	return &projectUsecase{repo: repo}
 }
 
-// --- Helper Functions ---
-
-// toText converts *string to pgtype.Text
-func toText(s *string) pgtype.Text {
-	if s == nil {
-		return pgtype.Text{Valid: false}
-	}
-	return pgtype.Text{String: *s, Valid: true}
-}
-
-// toTextFromStr converts string to pgtype.Text (empty string check optional)
-func toTextFromStr(s string) pgtype.Text {
-	if s == "" {
-		return pgtype.Text{Valid: false}
-	}
-	return pgtype.Text{String: s, Valid: true}
-}
-
 // --- Category ---
 
 func (u *projectUsecase) CreateCategory(ctx context.Context, userID uuid.UUID, name string, rootType repository.RootCategoryType, color string) (*repository.Category, error) {
@@ -50,9 +32,9 @@ func (u *projectUsecase) CreateCategory(ctx context.Context, userID uuid.UUID, n
 		Name:     name,
 		RootType: rootType,
 		// color は必須ではないが、ハンドラからは空文字または有効な値が来る想定
-		Color:    toTextFromStr(color), 
+		Color: toTextFromStr(color),
 	}
-	
+
 	category, err := u.repo.CreateCategory(ctx, arg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create category: %w", err)
@@ -99,7 +81,7 @@ func (u *projectUsecase) ListProjects(ctx context.Context, userID uuid.UUID, isA
 		UserID:     userID,
 		IsArchived: argIsArchived, // *bool -> pgtype.Bool
 	}
-	
+
 	projects, err := u.repo.ListProjects(ctx, arg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list projects: %w", err)

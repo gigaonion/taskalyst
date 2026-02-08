@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 )
 
 type TimeHandler struct {
@@ -28,12 +28,15 @@ type DateRangeRequest struct {
 	To   string `query:"to"`
 }
 
-
 func (h *TimeHandler) StartTimer(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 	var req StartTimerRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return err
 	}
 
 	pID, err := uuid.Parse(req.ProjectID)
@@ -72,7 +75,7 @@ func (h *TimeHandler) StopTimer(c echo.Context) error {
 
 func (h *TimeHandler) GetStats(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
-	
+
 	to := time.Now()
 	from := to.AddDate(-1, 0, 0)
 

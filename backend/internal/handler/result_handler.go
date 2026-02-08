@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
+	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/labstack/echo/v4"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
-	"github.com/gigaonion/taskalyst/backend/internal/usecase"
 )
 
 type ResultHandler struct {
@@ -43,7 +43,6 @@ type ResultResponse struct {
 	TaskTitle    string  `json:"task_title,omitempty"`
 }
 
-
 func toFloat64(n pgtype.Numeric) float64 {
 	f, _ := n.Float64Value()
 	return f.Float64
@@ -54,7 +53,7 @@ func toResultResponse(r *repository.Result) ResultResponse {
 	if r.TargetTaskID.Valid {
 		taskID = uuid.UUID(r.TargetTaskID.Bytes).String()
 	}
-	
+
 	return ResultResponse{
 		ID:         r.ID.String(),
 		ProjectID:  r.ProjectID.String(),
@@ -85,7 +84,6 @@ func toResultListResponse(r repository.ListResultsRow) ResultResponse {
 		TaskTitle:    r.TaskTitle.String,
 	}
 }
-
 
 func (h *ResultHandler) Create(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)

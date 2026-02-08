@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
 type ResultUsecase interface {

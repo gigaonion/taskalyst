@@ -8,17 +8,24 @@ import (
 	"time"
 
 	"github.com/emersion/go-ical"
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
 type CalDavUsecase interface {
 	ExportCalendarToICal(ctx context.Context, userID, calendarID uuid.UUID) (string, error)
 	ExportEventToICal(ctx context.Context, userID uuid.UUID, icalUID string) (string, error)
 	ExportTaskToICal(ctx context.Context, userID uuid.UUID, icalUID string) (string, error)
-	
+
 	ImportFromICal(ctx context.Context, userID, calendarID uuid.UUID, icalData string) error
+	DeleteResource(ctx context.Context, userID uuid.UUID, icalUID string) error
+
+	GetCalendars(ctx context.Context, userID uuid.UUID) ([]repository.Calendar, error)
+	GetCalendar(ctx context.Context, userID, calendarID uuid.UUID) (*repository.Calendar, error)
+
+	GetEventsByRange(ctx context.Context, userID, calendarID uuid.UUID, start, end time.Time) ([]repository.ScheduledEvent, error)
+	GetTasksByRange(ctx context.Context, userID, calendarID uuid.UUID, start, end time.Time) ([]repository.Task, error)
 }
 
 type calDavUsecase struct {
@@ -27,6 +34,67 @@ type calDavUsecase struct {
 
 func NewCalDavUsecase(repo *repository.Queries) CalDavUsecase {
 	return &calDavUsecase{repo: repo}
+}
+
+func (u *calDavUsecase) DeleteResource(ctx context.Context, userID uuid.UUID, icalUID string) error {
+	// Try event first
+	err := u.repo.DeleteEventByICalUID(ctx, repository.DeleteEventByICalUIDParams{
+		UserID:  userID,
+		IcalUid: toTextFromStr(icalUID),
+	})
+	if err == nil {
+		return nil
+	}
+	// Try task
+	return u.repo.DeleteTaskByICalUID(ctx, repository.DeleteTaskByICalUIDParams{
+		UserID:  userID,
+		IcalUid: toTextFromStr(icalUID),
+	})
+}
+
+func (u *calDavUsecase) GetCalendars(ctx context.Context, userID uuid.UUID) ([]repository.Calendar, error) {
+	return u.repo.ListCalendars(ctx, userID)
+}
+
+func (u *calDavUsecase) GetCalendar(ctx context.Context, userID, calendarID uuid.UUID) (*repository.Calendar, error) {
+	cal, err := u.repo.GetCalendar(ctx, repository.GetCalendarParams{
+		ID:     calendarID,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &cal, nil
+}
+
+func (u *calDavUsecase) GetEventsByRange(ctx context.Context, userID, calendarID uuid.UUID, start, end time.Time) ([]repository.ScheduledEvent, error) {
+	if !start.IsZero() || !end.IsZero() {
+		return u.repo.ListEventsByCalendarAndRange(ctx, repository.ListEventsByCalendarAndRangeParams{
+			UserID:     userID,
+			CalendarID: toUUID(&calendarID),
+			StartTime:  toTimestamp(&start),
+			EndTime:    toTimestamp(&end),
+		})
+	}
+	return u.repo.ListEventsByCalendar(ctx, repository.ListEventsByCalendarParams{
+		UserID:     userID,
+		CalendarID: toUUID(&calendarID),
+	})
+}
+
+func (u *calDavUsecase) GetTasksByRange(ctx context.Context, userID, calendarID uuid.UUID, start, end time.Time) ([]repository.Task, error) {
+	if !start.IsZero() || !end.IsZero() {
+		return u.repo.ListTasksByCalendarAndRange(ctx, repository.ListTasksByCalendarAndRangeParams{
+			UserID:     userID,
+			CalendarID: toUUID(&calendarID),
+			StartTime:  toTimestamp(&start),
+			EndTime:    toTimestamp(&end),
+		})
+	}
+	return u.repo.ListTasksByCalendar(ctx, repository.ListTasksByCalendarParams{
+		UserID:     userID,
+		CalendarID: toUUID(&calendarID),
+	})
 }
 
 func (u *calDavUsecase) ExportCalendarToICal(ctx context.Context, userID, calendarID uuid.UUID) (string, error) {
@@ -80,7 +148,7 @@ func (u *calDavUsecase) ExportEventToICal(ctx context.Context, userID uuid.UUID,
 	cal := ical.NewCalendar()
 	cal.Props.SetText(ical.PropProductID, "-//Taskalyst//EN")
 	cal.Props.SetText(ical.PropVersion, "2.0")
-	
+
 	event := eventToVEvent(&e)
 	cal.Children = append(cal.Children, event.Component)
 
@@ -103,7 +171,7 @@ func (u *calDavUsecase) ExportTaskToICal(ctx context.Context, userID uuid.UUID, 
 	cal := ical.NewCalendar()
 	cal.Props.SetText(ical.PropProductID, "-//Taskalyst//EN")
 	cal.Props.SetText(ical.PropVersion, "2.0")
-	
+
 	todo := taskToVTodo(&t)
 	cal.Children = append(cal.Children, todo)
 
@@ -131,7 +199,7 @@ func (u *calDavUsecase) ImportFromICal(ctx context.Context, userID, calendarID u
 			location, _ := event.Props.Text(ical.PropLocation)
 			start, _ := event.Props.DateTime(ical.PropDateTimeStart, time.UTC)
 			end, _ := event.Props.DateTime(ical.PropDateTimeEnd, time.UTC)
-			
+
 			// Check if exists
 			_, err := u.repo.GetEventByICalUID(ctx, repository.GetEventByICalUIDParams{
 				UserID:  userID,

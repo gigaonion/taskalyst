@@ -11,7 +11,7 @@ func GeneratePAT() (token string, hash string, err error) {
 	if _, err := rand.Read(bytes); err != nil {
 		return "", "", err
 	}
-	
+
 	rawToken := hex.EncodeToString(bytes)
 	userToken := "pat_" + rawToken
 

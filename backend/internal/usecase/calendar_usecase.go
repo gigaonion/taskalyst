@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
 type CalendarUsecase interface {
@@ -17,7 +17,7 @@ type CalendarUsecase interface {
 
 	CreateEvent(ctx context.Context, userID, projectID uuid.UUID, title, description, location string, startAt, endAt time.Time, isAllDay bool) (*repository.ScheduledEvent, error)
 	ListEvents(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]repository.ListEventsByRangeRow, error)
-	
+
 	CreateTimetableSlot(ctx context.Context, userID, projectID uuid.UUID, dayOfWeek int32, start, end time.Time, location string) (*repository.TimetableSlot, error)
 	ListTimetable(ctx context.Context, userID uuid.UUID) ([]repository.ListTimetableSlotsRow, error)
 
@@ -31,7 +31,6 @@ type calendarUsecase struct {
 func NewCalendarUsecase(repo *repository.Queries) CalendarUsecase {
 	return &calendarUsecase{repo: repo}
 }
-
 
 func (u *calendarUsecase) CreateEvent(ctx context.Context, userID, projectID uuid.UUID, title, description, location string, startAt, endAt time.Time, isAllDay bool) (*repository.ScheduledEvent, error) {
 	// デフォルトカレンダー
@@ -78,9 +77,8 @@ func (u *calendarUsecase) ListEvents(ctx context.Context, userID uuid.UUID, star
 	return events, nil
 }
 
-
 func (u *calendarUsecase) CreateTimetableSlot(ctx context.Context, userID, projectID uuid.UUID, dayOfWeek int32, start, end time.Time, location string) (*repository.TimetableSlot, error) {
-	
+
 	slot, err := u.repo.CreateTimetableSlot(ctx, repository.CreateTimetableSlotParams{
 		UserID:    userID,
 		ProjectID: projectID,
@@ -103,7 +101,6 @@ func (u *calendarUsecase) ListTimetable(ctx context.Context, userID uuid.UUID) (
 	return slots, nil
 }
 
-
 func (u *calendarUsecase) SyncDailySchedule(ctx context.Context, userID uuid.UUID, targetDate time.Time) error {
 	dow := int32(targetDate.Weekday())
 
@@ -117,7 +114,7 @@ func (u *calendarUsecase) SyncDailySchedule(ctx context.Context, userID uuid.UUI
 		if int32(slot.DayOfWeek) != dow {
 			continue
 		}
-		
+
 		start := mergeDateAndTime(targetDate, slot.StartTime.Microseconds)
 		end := mergeDateAndTime(targetDate, slot.EndTime.Microseconds)
 
@@ -127,13 +124,13 @@ func (u *calendarUsecase) SyncDailySchedule(ctx context.Context, userID uuid.UUI
 			ProjectID: slot.ProjectID,
 			StartedAt: toTimestamp(&start),
 			Note:      toTextFromStr("Auto-generated from Timetable"),
-			EndedAt: toTimestamp(&end),
+			EndedAt:   toTimestamp(&end),
 		})
 		if err != nil {
 			fmt.Printf("failed to sync slot: %v\n", err)
 		}
 	}
-	
+
 	return nil
 }
 

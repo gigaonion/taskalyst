@@ -3,9 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
+	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 )
 
 // トランザクション制御
@@ -29,7 +29,7 @@ func (tm *txManager) ReadCommitted(ctx context.Context, fn func(q *repository.Qu
 
 	// fn実行用に新しいQueriesインスタンスを作成
 	q := repository.New(tx)
-	
+
 	if err := fn(q); err != nil {
 		if rbErr := tx.Rollback(ctx); rbErr != nil {
 			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)

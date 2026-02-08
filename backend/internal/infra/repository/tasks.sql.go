@@ -278,6 +278,62 @@ func (q *Queries) ListTasksByCalendar(ctx context.Context, arg ListTasksByCalend
 	return items, nil
 }
 
+const listTasksByCalendarAndRange = `-- name: ListTasksByCalendarAndRange :many
+SELECT id, user_id, project_id, title, note_markdown, status, due_date, priority, created_at, updated_at, calendar_id, ical_uid, etag, sequence, completed_at FROM tasks
+WHERE user_id = $1
+  AND calendar_id = $2
+  AND (due_date IS NULL OR (due_date >= $3 AND due_date <= $4))
+ORDER BY created_at DESC
+`
+
+type ListTasksByCalendarAndRangeParams struct {
+	UserID     uuid.UUID          `json:"user_id"`
+	CalendarID pgtype.UUID        `json:"calendar_id"`
+	StartTime  pgtype.Timestamptz `json:"start_time"`
+	EndTime    pgtype.Timestamptz `json:"end_time"`
+}
+
+func (q *Queries) ListTasksByCalendarAndRange(ctx context.Context, arg ListTasksByCalendarAndRangeParams) ([]Task, error) {
+	rows, err := q.db.Query(ctx, listTasksByCalendarAndRange,
+		arg.UserID,
+		arg.CalendarID,
+		arg.StartTime,
+		arg.EndTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Task
+	for rows.Next() {
+		var i Task
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.Title,
+			&i.NoteMarkdown,
+			&i.Status,
+			&i.DueDate,
+			&i.Priority,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CalendarID,
+			&i.IcalUid,
+			&i.Etag,
+			&i.Sequence,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTasksWithStats = `-- name: ListTasksWithStats :many
 SELECT
     t.id, t.project_id, t.title, t.status, t.due_date, t.priority,

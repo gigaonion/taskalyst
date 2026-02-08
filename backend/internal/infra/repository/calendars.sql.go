@@ -351,6 +351,69 @@ func (q *Queries) ListEventsByCalendar(ctx context.Context, arg ListEventsByCale
 	return items, nil
 }
 
+const listEventsByCalendarAndRange = `-- name: ListEventsByCalendarAndRange :many
+SELECT id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at FROM scheduled_events
+WHERE user_id = $1 
+  AND calendar_id = $2
+  AND end_at >= $3
+  AND start_at <= $4
+ORDER BY start_at ASC
+`
+
+type ListEventsByCalendarAndRangeParams struct {
+	UserID     uuid.UUID          `json:"user_id"`
+	CalendarID pgtype.UUID        `json:"calendar_id"`
+	StartTime  pgtype.Timestamptz `json:"start_time"`
+	EndTime    pgtype.Timestamptz `json:"end_time"`
+}
+
+func (q *Queries) ListEventsByCalendarAndRange(ctx context.Context, arg ListEventsByCalendarAndRangeParams) ([]ScheduledEvent, error) {
+	rows, err := q.db.Query(ctx, listEventsByCalendarAndRange,
+		arg.UserID,
+		arg.CalendarID,
+		arg.StartTime,
+		arg.EndTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ScheduledEvent
+	for rows.Next() {
+		var i ScheduledEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.CalendarID,
+			&i.Title,
+			&i.Description,
+			&i.Location,
+			&i.StartAt,
+			&i.EndAt,
+			&i.IsAllDay,
+			&i.ExternalEventID,
+			&i.IcalUid,
+			&i.Etag,
+			&i.Sequence,
+			&i.Status,
+			&i.Transparency,
+			&i.Rrule,
+			&i.Dtstamp,
+			&i.Url,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEventsByRange = `-- name: ListEventsByRange :many
 SELECT e.id, e.user_id, e.project_id, e.calendar_id, e.title, e.description, e.location, e.start_at, e.end_at, e.is_all_day, e.external_event_id, e.ical_uid, e.etag, e.sequence, e.status, e.transparency, e.rrule, e.dtstamp, e.url, e.created_at, e.updated_at, p.title as project_title, p.category_id
 FROM scheduled_events e

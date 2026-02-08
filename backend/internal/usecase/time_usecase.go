@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
+	"github.com/google/uuid"
 )
 
 type TimeUsecase interface {
@@ -78,5 +78,3 @@ func (u *timeUsecase) GetContributionStats(ctx context.Context, userID uuid.UUID
 	}
 	return stats, nil
 }
-
-func ptr(t time.Time) *time.Time { return &t }

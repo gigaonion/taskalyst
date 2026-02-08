@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/gigaonion/taskalyst/backend/internal/usecase"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
 type TaskHandler struct {
@@ -18,11 +18,10 @@ func NewTaskHandler(u usecase.TaskUsecase) *TaskHandler {
 	return &TaskHandler{u: u}
 }
 
-
 type CreateTaskRequest struct {
-	ProjectID string    `json:"project_id" validate:"required"`
-	Title     string    `json:"title" validate:"required"`
-	Note      string    `json:"note"`
+	ProjectID string     `json:"project_id" validate:"required"`
+	Title     string     `json:"title" validate:"required"`
+	Note      string     `json:"note"`
 	DueDate   *time.Time `json:"due_date"`
 }
 
@@ -38,13 +37,16 @@ type ToggleChecklistItemRequest struct {
 	IsCompleted bool `json:"is_completed"`
 }
 
-
 func (h *TaskHandler) CreateTask(c echo.Context) error {
 	userID := c.Get("user_id").(uuid.UUID)
 
 	var req CreateTaskRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return err
 	}
 
 	projectID, err := uuid.Parse(req.ProjectID)
@@ -108,6 +110,10 @@ func (h *TaskHandler) UpdateTaskStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
 
+	if err := c.Validate(&req); err != nil {
+		return err
+	}
+
 	task, err := h.u.UpdateTaskStatus(c.Request().Context(), userID, taskID, repository.TaskStatus(req.Status))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -116,7 +122,7 @@ func (h *TaskHandler) UpdateTaskStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, task)
 }
 
-//チェックリスト
+// チェックリスト
 func (h *TaskHandler) AddChecklistItem(c echo.Context) error {
 	taskID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -126,6 +132,10 @@ func (h *TaskHandler) AddChecklistItem(c echo.Context) error {
 	var req AddChecklistItemRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	if err := c.Validate(&req); err != nil {
+		return err
 	}
 
 	item, err := h.u.AddChecklistItem(c.Request().Context(), taskID, req.Content)
