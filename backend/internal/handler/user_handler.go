@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/labstack/echo/v4"
 	"github.com/google/uuid"
 	"github.com/gigaonion/taskalyst/backend/internal/usecase"
@@ -43,7 +45,12 @@ func (h *UserHandler) SignUp(c echo.Context) error {
 
 	user, err := h.u.SignUp(c.Request().Context(), req.Email, req.Password, req.Name)
 	if err != nil {
-		// ToDo:エラーの種類で分岐する
+		var pgErr *pgconn.PgError
+		if errors.As(err,&pgErr){
+			if pgErr.Code == "23505" {
+				return echo.NewHTTPError(http.StatusConflict, "email already exists")
+			}
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
