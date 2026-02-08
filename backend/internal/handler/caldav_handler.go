@@ -117,8 +117,8 @@ func (h *CalDavHandler) PrincipalDiscovery(c echo.Context) error {
 		return h.Options(c)
 	}
 
-	userID, ok := c.Get("user_id").(uuid.UUID)
-	if !ok {
+	userID := getUserID(c)
+	if userID == uuid.Nil {
 		return echo.NewHTTPError(http.StatusUnauthorized)
 	}
 
@@ -160,7 +160,7 @@ func (h *CalDavHandler) Principal(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid user id")
 	}
 
-	currentUserID := c.Get("user_id").(uuid.UUID)
+	currentUserID := getUserID(c)
 	if userID != currentUserID {
 		return echo.NewHTTPError(http.StatusForbidden)
 	}
@@ -197,14 +197,14 @@ func (h *CalDavHandler) CalendarHome(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid user id")
 	}
 
-	currentUserID := c.Get("user_id").(uuid.UUID)
+	currentUserID := getUserID(c)
 	if userID != currentUserID {
 		return echo.NewHTTPError(http.StatusForbidden)
 	}
 
 	calendars, err := h.u.GetCalendars(c.Request().Context(), userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	requestedProps := h.parsePropfindRequest(c)
@@ -341,13 +341,13 @@ func (h *CalDavHandler) CalendarResource(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, "failed to read body")
 		}
 		if err := h.u.ImportFromICal(c.Request().Context(), userID, calendarID, string(body)); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return HandleError(c, err)
 		}
 		return c.NoContent(http.StatusCreated)
 
 	case "DELETE":
 		if err := h.u.DeleteResource(c.Request().Context(), userID, icalUID); err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			return HandleError(c, err)
 		}
 		return c.NoContent(http.StatusNoContent)
 
@@ -580,7 +580,7 @@ func (h *CalDavHandler) GetCalendar(c echo.Context) error {
 
 	ical, err := h.u.ExportCalendarToICal(c.Request().Context(), userID, calendarID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	c.Response().Header().Set("Content-Type", "text/calendar; charset=utf-8")

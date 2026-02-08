@@ -30,7 +30,7 @@ type CreateProjectRequest struct {
 }
 
 func (h *ProjectHandler) CreateCategory(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	var req CreateCategoryRequest
 	if err := c.Bind(&req); err != nil {
@@ -45,24 +45,24 @@ func (h *ProjectHandler) CreateCategory(c echo.Context) error {
 
 	category, err := h.u.CreateCategory(c.Request().Context(), userID, req.Name, rootType, req.Color)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusCreated, category)
 }
 
 func (h *ProjectHandler) ListCategories(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	categories, err := h.u.ListCategories(c.Request().Context(), userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.JSON(http.StatusOK, categories)
 }
 
 func (h *ProjectHandler) CreateProject(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	var req CreateProjectRequest
 	if err := c.Bind(&req); err != nil {
@@ -80,14 +80,14 @@ func (h *ProjectHandler) CreateProject(c echo.Context) error {
 
 	project, err := h.u.CreateProject(c.Request().Context(), userID, catID, req.Title, req.Description)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusCreated, project)
 }
 
 func (h *ProjectHandler) ListProjects(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	// ?archived=true
 	var isArchived *bool
@@ -101,7 +101,7 @@ func (h *ProjectHandler) ListProjects(c echo.Context) error {
 
 	projects, err := h.u.ListProjects(c.Request().Context(), userID, isArchived)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.JSON(http.StatusOK, projects)
 }

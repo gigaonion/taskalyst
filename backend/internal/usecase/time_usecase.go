@@ -2,11 +2,14 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type TimeUsecase interface {
@@ -17,11 +20,15 @@ type TimeUsecase interface {
 }
 
 type timeUsecase struct {
-	repo *repository.Queries
+	repo      *repository.Queries
+	txManager db.TxManager
 }
 
-func NewTimeUsecase(repo *repository.Queries) TimeUsecase {
-	return &timeUsecase{repo: repo}
+func NewTimeUsecase(repo *repository.Queries, txManager db.TxManager) TimeUsecase {
+	return &timeUsecase{
+		repo:      repo,
+		txManager: txManager,
+	}
 }
 
 func (u *timeUsecase) StartTimeEntry(ctx context.Context, userID, projectID uuid.UUID, taskID *uuid.UUID, note string) (*repository.TimeEntry, error) {
@@ -29,10 +36,9 @@ func (u *timeUsecase) StartTimeEntry(ctx context.Context, userID, projectID uuid
 		UserID:    userID,
 		ProjectID: projectID,
 		TaskID:    toUUID(taskID),
-		StartedAt: toTimestamp(&time.Time{}),
+		StartedAt: toTimestamp(ptr(time.Now())),
 		Note:      toTextFromStr(note),
 	}
-	arg.StartedAt = toTimestamp(ptr(time.Now()))
 
 	entry, err := u.repo.CreateTimeEntry(ctx, arg)
 	if err != nil {
@@ -49,6 +55,9 @@ func (u *timeUsecase) StopTimeEntry(ctx context.Context, userID, entryID uuid.UU
 		EndedAt: now,
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, NewNotFoundError("time entry not found")
+		}
 		return nil, fmt.Errorf("failed to stop timer: %w", err)
 	}
 	return &entry, nil

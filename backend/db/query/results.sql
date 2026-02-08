@@ -9,8 +9,8 @@ INSERT INTO results (
 SELECT 
     r.*, 
     p.title as project_title, 
-    p.color as project_color, 
-    t.title as task_title
+    COALESCE(p.color, '#808080')::varchar as project_color, 
+    COALESCE(t.title, '')::varchar as task_title
 FROM results r
 JOIN projects p ON r.project_id = p.id
 LEFT JOIN tasks t ON r.target_task_id = t.id

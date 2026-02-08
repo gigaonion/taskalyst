@@ -29,7 +29,7 @@ type DateRangeRequest struct {
 }
 
 func (h *TimeHandler) StartTimer(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	var req StartTimerRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
@@ -54,13 +54,13 @@ func (h *TimeHandler) StartTimer(c echo.Context) error {
 
 	entry, err := h.u.StartTimeEntry(c.Request().Context(), userID, pID, tID, req.Note)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.JSON(http.StatusCreated, entry)
 }
 
 func (h *TimeHandler) StopTimer(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid entry id")
@@ -68,31 +68,20 @@ func (h *TimeHandler) StopTimer(c echo.Context) error {
 
 	entry, err := h.u.StopTimeEntry(c.Request().Context(), userID, id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.JSON(http.StatusOK, entry)
 }
 
 func (h *TimeHandler) GetStats(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
-	to := time.Now()
-	from := to.AddDate(-1, 0, 0)
-
-	if f := c.QueryParam("from"); f != "" {
-		if t, err := time.Parse("2006-01-02", f); err == nil {
-			from = t
-		}
-	}
-	if t := c.QueryParam("to"); t != "" {
-		if tm, err := time.Parse("2006-01-02", t); err == nil {
-			to = tm
-		}
-	}
+	to := parseDateQuery(c, "to", time.Now())
+	from := parseDateQuery(c, "from", to.AddDate(-1, 0, 0))
 
 	stats, err := h.u.GetContributionStats(c.Request().Context(), userID, from, to)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.JSON(http.StatusOK, stats)
 }

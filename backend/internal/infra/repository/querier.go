@@ -30,6 +30,8 @@ type Querier interface {
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) error
 	DeleteTaskByICalUID(ctx context.Context, arg DeleteTaskByICalUIDParams) error
 	GetCalendar(ctx context.Context, arg GetCalendarParams) (Calendar, error)
+	GetDefaultCalendar(ctx context.Context, userID uuid.UUID) (Calendar, error)
+	GetDefaultProject(ctx context.Context, userID uuid.UUID) (Project, error)
 	GetEventByICalUID(ctx context.Context, arg GetEventByICalUIDParams) (ScheduledEvent, error)
 	// GROWTHカテゴリの実績のみを日別集計
 	GetGrowthStats(ctx context.Context, arg GetGrowthStatsParams) ([]GetGrowthStatsRow, error)
@@ -56,6 +58,7 @@ type Querier interface {
 	ListTasksWithStats(ctx context.Context, arg ListTasksWithStatsParams) ([]ListTasksWithStatsRow, error)
 	ListTimeEntries(ctx context.Context, arg ListTimeEntriesParams) ([]ListTimeEntriesRow, error)
 	ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]ListTimetableSlotsRow, error)
+	ListTimetableSlotsByDayOfWeek(ctx context.Context, arg ListTimetableSlotsByDayOfWeekParams) ([]ListTimetableSlotsByDayOfWeekRow, error)
 	StopTimeEntry(ctx context.Context, arg StopTimeEntryParams) (TimeEntry, error)
 	UpdateChecklistItem(ctx context.Context, arg UpdateChecklistItemParams) (ChecklistItem, error)
 	UpdateEventByICalUID(ctx context.Context, arg UpdateEventByICalUIDParams) (ScheduledEvent, error)

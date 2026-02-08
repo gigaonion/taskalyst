@@ -18,20 +18,21 @@ SET
     task_id = COALESCE(sqlc.narg('task_id'), task_id),
     started_at = COALESCE(sqlc.narg('started_at'), started_at),
     ended_at = COALESCE(sqlc.narg('ended_at'), ended_at),
-    note = COALESCE(sqlc.narg('note'), note)
+    note = COALESCE(sqlc.narg('note'), note),
+    updated_at = NOW()
 WHERE id = $1 AND user_id = $2
 RETURNING *;
 
 -- name: GetRunningTimeEntries :many
 -- 計測中のエントリ
-SELECT t.*, p.title as project_title, p.color as project_color
+SELECT t.*, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
 FROM time_entries t
 JOIN projects p ON t.project_id = p.id
 WHERE t.user_id = $1 AND t.ended_at IS NULL
 ORDER BY t.started_at DESC;
 
 -- name: ListTimeEntries :many
-SELECT t.*, p.title as project_title, p.color as project_color
+SELECT t.*, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
 FROM time_entries t
 JOIN projects p ON t.project_id = p.id
 WHERE 

@@ -2,11 +2,14 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -20,19 +23,23 @@ type TaskUsecase interface {
 }
 
 type taskUsecase struct {
-	repo *repository.Queries
+	repo      *repository.Queries
+	txManager db.TxManager
 }
 
-func NewTaskUsecase(repo *repository.Queries) TaskUsecase {
-	return &taskUsecase{repo: repo}
+func NewTaskUsecase(repo *repository.Queries, txManager db.TxManager) TaskUsecase {
+	return &taskUsecase{
+		repo:      repo,
+		txManager: txManager,
+	}
 }
 
 func (u *taskUsecase) CreateTask(ctx context.Context, userID, projectID uuid.UUID, title, note string, dueDate *time.Time) (*repository.Task, error) {
 	// Find default calendar for user
 	var calendarID pgtype.UUID
-	calendars, err := u.repo.ListCalendars(ctx, userID)
-	if err == nil && len(calendars) > 0 {
-		calendarID = pgtype.UUID{Bytes: calendars[0].ID, Valid: true}
+	defaultCal, err := u.repo.GetDefaultCalendar(ctx, userID)
+	if err == nil {
+		calendarID = pgtype.UUID{Bytes: defaultCal.ID, Valid: true}
 	}
 
 	arg := repository.CreateTaskParams{
@@ -85,12 +92,15 @@ func (u *taskUsecase) UpdateTaskStatus(ctx context.Context, userID, taskID uuid.
 	arg := repository.UpdateTaskParams{
 		ID:          taskID,
 		UserID:      userID,
-		Status:      status,
+		Status:      repository.NullTaskStatus{TaskStatus: status, Valid: true},
 		CompletedAt: completedAt,
 	}
 
 	task, err := u.repo.UpdateTask(ctx, arg)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, NewNotFoundError("task not found")
+		}
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
 	return &task, nil
@@ -113,6 +123,9 @@ func (u *taskUsecase) ToggleChecklistItem(ctx context.Context, itemID uuid.UUID,
 		IsCompleted: pgtype.Bool{Bool: isCompleted, Valid: true},
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, NewNotFoundError("checklist item not found")
+		}
 		return nil, fmt.Errorf("failed to toggle item: %w", err)
 	}
 	return &item, nil

@@ -337,7 +337,7 @@ func (q *Queries) ListTasksByCalendarAndRange(ctx context.Context, arg ListTasks
 const listTasksWithStats = `-- name: ListTasksWithStats :many
 SELECT
     t.id, t.project_id, t.title, t.status, t.due_date, t.priority,
-    p.title as project_title, p.color as project_color,
+    p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color,
     COUNT(ci.id) as total_items,
     COUNT(ci.id) FILTER (WHERE ci.is_completed) as done_items
 FROM tasks t
@@ -372,7 +372,7 @@ type ListTasksWithStatsRow struct {
 	DueDate      pgtype.Timestamptz `json:"due_date"`
 	Priority     pgtype.Int2        `json:"priority"`
 	ProjectTitle string             `json:"project_title"`
-	ProjectColor pgtype.Text        `json:"project_color"`
+	ProjectColor string             `json:"project_color"`
 	TotalItems   int64              `json:"total_items"`
 	DoneItems    int64              `json:"done_items"`
 }
@@ -453,10 +453,10 @@ func (q *Queries) UpdateChecklistItem(ctx context.Context, arg UpdateChecklistIt
 const updateTask = `-- name: UpdateTask :one
 UPDATE tasks
 SET
-    title = COALESCE($5, title),
-    note_markdown = COALESCE($6, note_markdown),
-    status = $3,
-    completed_at = $4,
+    title = COALESCE($3, title),
+    note_markdown = COALESCE($4, note_markdown),
+    status = COALESCE($5, status),
+    completed_at = COALESCE($6, completed_at),
     due_date = COALESCE($7, due_date),
     priority = COALESCE($8, priority),
     updated_at = NOW()
@@ -467,10 +467,10 @@ RETURNING id, user_id, project_id, title, note_markdown, status, due_date, prior
 type UpdateTaskParams struct {
 	ID           uuid.UUID          `json:"id"`
 	UserID       uuid.UUID          `json:"user_id"`
-	Status       TaskStatus         `json:"status"`
-	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
 	Title        pgtype.Text        `json:"title"`
 	NoteMarkdown pgtype.Text        `json:"note_markdown"`
+	Status       NullTaskStatus     `json:"status"`
+	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
 	DueDate      pgtype.Timestamptz `json:"due_date"`
 	Priority     pgtype.Int2        `json:"priority"`
 }
@@ -479,10 +479,10 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 	row := q.db.QueryRow(ctx, updateTask,
 		arg.ID,
 		arg.UserID,
-		arg.Status,
-		arg.CompletedAt,
 		arg.Title,
 		arg.NoteMarkdown,
+		arg.Status,
+		arg.CompletedAt,
 		arg.DueDate,
 		arg.Priority,
 	)

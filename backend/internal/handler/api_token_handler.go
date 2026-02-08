@@ -21,7 +21,7 @@ type CreateTokenRequest struct {
 }
 
 func (h *ApiTokenHandler) Create(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	var req CreateTokenRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
@@ -33,7 +33,7 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 
 	rawToken, _, err := h.u.Create(c.Request().Context(), userID, req.Name)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	// ユーザーには生のトークンを返す
@@ -44,23 +44,23 @@ func (h *ApiTokenHandler) Create(c echo.Context) error {
 }
 
 func (h *ApiTokenHandler) List(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	tokens, err := h.u.List(c.Request().Context(), userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.JSON(http.StatusOK, tokens)
 }
 
 func (h *ApiTokenHandler) Revoke(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
 
 	if err := h.u.Revoke(c.Request().Context(), userID, id); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 	return c.NoContent(http.StatusNoContent)
 }

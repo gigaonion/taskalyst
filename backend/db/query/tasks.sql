@@ -14,7 +14,7 @@ WHERE id = $1 AND user_id = $2 LIMIT 1;
 -- タスクと同時に、チェックリストの進捗を取得
 SELECT
     t.id, t.project_id, t.title, t.status, t.due_date, t.priority,
-    p.title as project_title, p.color as project_color,
+    p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color,
     COUNT(ci.id) as total_items,
     COUNT(ci.id) FILTER (WHERE ci.is_completed) as done_items
 FROM tasks t
@@ -37,8 +37,8 @@ UPDATE tasks
 SET
     title = COALESCE(sqlc.narg('title'), title),
     note_markdown = COALESCE(sqlc.narg('note_markdown'), note_markdown),
-    status = $3,
-    completed_at = $4,
+    status = COALESCE(sqlc.narg('status'), status),
+    completed_at = COALESCE(sqlc.narg('completed_at'), completed_at),
     due_date = COALESCE(sqlc.narg('due_date'), due_date),
     priority = COALESCE(sqlc.narg('priority'), priority),
     updated_at = NOW()

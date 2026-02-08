@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gigaonion/taskalyst/backend/internal/config"
@@ -10,6 +11,8 @@ import (
 	"github.com/gigaonion/taskalyst/backend/pkg/auth"
 	"github.com/gigaonion/taskalyst/backend/pkg/password"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type UserUsecase interface {
@@ -36,7 +39,7 @@ func (u *userUsecase) SignUp(ctx context.Context, email, plainPassword, name str
 	// Password
 	hash, err := password.Hash(plainPassword)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	var user repository.User
@@ -52,6 +55,12 @@ func (u *userUsecase) SignUp(ctx context.Context, email, plainPassword, name str
 
 		createdUser, err := q.CreateUser(ctx, arg)
 		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				if pgErr.Code == "23505" { // unique_violation
+					return NewConflictError("email already exists")
+				}
+			}
 			return err
 		}
 
@@ -60,7 +69,7 @@ func (u *userUsecase) SignUp(ctx context.Context, email, plainPassword, name str
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("signup failed: %w", err)
+		return nil, err
 	}
 
 	return &user, nil
@@ -69,7 +78,10 @@ func (u *userUsecase) SignUp(ctx context.Context, email, plainPassword, name str
 func (u *userUsecase) Login(ctx context.Context, email, plainPassword string) (*auth.TokenPair, error) {
 	user, err := u.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		return nil, fmt.Errorf("invalid email or password")
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, NewUnauthorizedError("invalid email or password")
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Password
@@ -78,7 +90,7 @@ func (u *userUsecase) Login(ctx context.Context, email, plainPassword string) (*
 		return nil, fmt.Errorf("failed to check password: %w", err)
 	}
 	if !match {
-		return nil, fmt.Errorf("invalid email or password")
+		return nil, NewUnauthorizedError("invalid email or password")
 	}
 
 	// トークンの生成
@@ -92,6 +104,9 @@ func (u *userUsecase) Login(ctx context.Context, email, plainPassword string) (*
 func (u *userUsecase) GetProfile(ctx context.Context, id uuid.UUID) (*repository.User, error) {
 	user, err := u.repo.GetUserByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, NewNotFoundError("user not found")
+		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 	return &user, nil

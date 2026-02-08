@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,11 +18,15 @@ type ResultUsecase interface {
 }
 
 type resultUsecase struct {
-	repo *repository.Queries
+	repo      *repository.Queries
+	txManager db.TxManager
 }
 
-func NewResultUsecase(repo *repository.Queries) ResultUsecase {
-	return &resultUsecase{repo: repo}
+func NewResultUsecase(repo *repository.Queries, txManager db.TxManager) ResultUsecase {
+	return &resultUsecase{
+		repo:      repo,
+		txManager: txManager,
+	}
 }
 func toNumeric(f float64) pgtype.Numeric {
 	var n pgtype.Numeric

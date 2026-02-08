@@ -2,11 +2,14 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/gigaonion/taskalyst/backend/pkg/auth"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -17,11 +20,15 @@ type ApiTokenUsecase interface {
 }
 
 type apiTokenUsecase struct {
-	repo *repository.Queries
+	repo      *repository.Queries
+	txManager db.TxManager
 }
 
-func NewApiTokenUsecase(repo *repository.Queries) ApiTokenUsecase {
-	return &apiTokenUsecase{repo: repo}
+func NewApiTokenUsecase(repo *repository.Queries, txManager db.TxManager) ApiTokenUsecase {
+	return &apiTokenUsecase{
+		repo:      repo,
+		txManager: txManager,
+	}
 }
 
 func (u *apiTokenUsecase) Create(ctx context.Context, userID uuid.UUID, name string) (string, *repository.ApiToken, error) {
@@ -57,6 +64,9 @@ func (u *apiTokenUsecase) Revoke(ctx context.Context, userID, id uuid.UUID) erro
 		UserID: userID,
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return NewNotFoundError("api token not found")
+		}
 		return fmt.Errorf("failed to revoke api token: %w", err)
 	}
 	return nil

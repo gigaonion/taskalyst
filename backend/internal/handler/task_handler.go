@@ -38,7 +38,7 @@ type ToggleChecklistItemRequest struct {
 }
 
 func (h *TaskHandler) CreateTask(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	var req CreateTaskRequest
 	if err := c.Bind(&req); err != nil {
@@ -56,14 +56,14 @@ func (h *TaskHandler) CreateTask(c echo.Context) error {
 
 	task, err := h.u.CreateTask(c.Request().Context(), userID, projectID, req.Title, req.Note, req.DueDate)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusCreated, task)
 }
 
 func (h *TaskHandler) ListTasks(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	var projectID *uuid.UUID
 	if pid := c.QueryParam("project_id"); pid != "" {
@@ -92,14 +92,14 @@ func (h *TaskHandler) ListTasks(c echo.Context) error {
 	}
 	tasks, err := h.u.ListTasks(c.Request().Context(), userID, projectID, status, from, to)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusOK, tasks)
 }
 
 func (h *TaskHandler) UpdateTaskStatus(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	taskID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid task id")
@@ -116,7 +116,7 @@ func (h *TaskHandler) UpdateTaskStatus(c echo.Context) error {
 
 	task, err := h.u.UpdateTaskStatus(c.Request().Context(), userID, taskID, repository.TaskStatus(req.Status))
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusOK, task)
@@ -140,7 +140,7 @@ func (h *TaskHandler) AddChecklistItem(c echo.Context) error {
 
 	item, err := h.u.AddChecklistItem(c.Request().Context(), taskID, req.Content)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusCreated, item)
@@ -159,7 +159,7 @@ func (h *TaskHandler) ToggleChecklistItem(c echo.Context) error {
 
 	item, err := h.u.ToggleChecklistItem(c.Request().Context(), itemID, req.IsCompleted)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusOK, item)

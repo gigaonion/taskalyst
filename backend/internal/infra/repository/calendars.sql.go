@@ -223,6 +223,30 @@ func (q *Queries) GetCalendar(ctx context.Context, arg GetCalendarParams) (Calen
 	return i, err
 }
 
+const getDefaultCalendar = `-- name: GetDefaultCalendar :one
+SELECT id, user_id, name, color, description, sync_token, supported_components, created_at, updated_at FROM calendars
+WHERE user_id = $1
+ORDER BY created_at
+LIMIT 1
+`
+
+func (q *Queries) GetDefaultCalendar(ctx context.Context, userID uuid.UUID) (Calendar, error) {
+	row := q.db.QueryRow(ctx, getDefaultCalendar, userID)
+	var i Calendar
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Color,
+		&i.Description,
+		&i.SyncToken,
+		&i.SupportedComponents,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getEventByICalUID = `-- name: GetEventByICalUID :one
 SELECT id, user_id, project_id, calendar_id, title, description, location, start_at, end_at, is_all_day, external_event_id, ical_uid, etag, sequence, status, transparency, rrule, dtstamp, url, created_at, updated_at FROM scheduled_events
 WHERE user_id = $1 AND ical_uid = $2 LIMIT 1
@@ -502,7 +526,7 @@ func (q *Queries) ListEventsByRange(ctx context.Context, arg ListEventsByRangePa
 }
 
 const listTimetableSlots = `-- name: ListTimetableSlots :many
-SELECT ts.id, ts.user_id, ts.project_id, ts.day_of_week, ts.start_time, ts.end_time, ts.note, ts.location, p.title as project_title, p.color as project_color
+SELECT ts.id, ts.user_id, ts.project_id, ts.day_of_week, ts.start_time, ts.end_time, ts.note, ts.location, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
 FROM timetable_slots ts
 JOIN projects p ON ts.project_id = p.id
 WHERE ts.user_id = $1
@@ -519,7 +543,7 @@ type ListTimetableSlotsRow struct {
 	Note         pgtype.Text `json:"note"`
 	Location     pgtype.Text `json:"location"`
 	ProjectTitle string      `json:"project_title"`
-	ProjectColor pgtype.Text `json:"project_color"`
+	ProjectColor string      `json:"project_color"`
 }
 
 func (q *Queries) ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]ListTimetableSlotsRow, error) {
@@ -531,6 +555,63 @@ func (q *Queries) ListTimetableSlots(ctx context.Context, userID uuid.UUID) ([]L
 	var items []ListTimetableSlotsRow
 	for rows.Next() {
 		var i ListTimetableSlotsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.DayOfWeek,
+			&i.StartTime,
+			&i.EndTime,
+			&i.Note,
+			&i.Location,
+			&i.ProjectTitle,
+			&i.ProjectColor,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTimetableSlotsByDayOfWeek = `-- name: ListTimetableSlotsByDayOfWeek :many
+SELECT ts.id, ts.user_id, ts.project_id, ts.day_of_week, ts.start_time, ts.end_time, ts.note, ts.location, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
+FROM timetable_slots ts
+JOIN projects p ON ts.project_id = p.id
+WHERE ts.user_id = $1 AND ts.day_of_week = $2
+ORDER BY ts.start_time
+`
+
+type ListTimetableSlotsByDayOfWeekParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	DayOfWeek int16     `json:"day_of_week"`
+}
+
+type ListTimetableSlotsByDayOfWeekRow struct {
+	ID           uuid.UUID   `json:"id"`
+	UserID       uuid.UUID   `json:"user_id"`
+	ProjectID    uuid.UUID   `json:"project_id"`
+	DayOfWeek    int16       `json:"day_of_week"`
+	StartTime    pgtype.Time `json:"start_time"`
+	EndTime      pgtype.Time `json:"end_time"`
+	Note         pgtype.Text `json:"note"`
+	Location     pgtype.Text `json:"location"`
+	ProjectTitle string      `json:"project_title"`
+	ProjectColor string      `json:"project_color"`
+}
+
+func (q *Queries) ListTimetableSlotsByDayOfWeek(ctx context.Context, arg ListTimetableSlotsByDayOfWeekParams) ([]ListTimetableSlotsByDayOfWeekRow, error) {
+	rows, err := q.db.Query(ctx, listTimetableSlotsByDayOfWeek, arg.UserID, arg.DayOfWeek)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTimetableSlotsByDayOfWeekRow
+	for rows.Next() {
+		var i ListTimetableSlotsByDayOfWeekRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,

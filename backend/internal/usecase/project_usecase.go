@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -17,11 +18,15 @@ type ProjectUsecase interface {
 }
 
 type projectUsecase struct {
-	repo *repository.Queries
+	repo      *repository.Queries
+	txManager db.TxManager
 }
 
-func NewProjectUsecase(repo *repository.Queries) ProjectUsecase {
-	return &projectUsecase{repo: repo}
+func NewProjectUsecase(repo *repository.Queries, txManager db.TxManager) ProjectUsecase {
+	return &projectUsecase{
+		repo:      repo,
+		txManager: txManager,
+	}
 }
 
 // --- Category ---

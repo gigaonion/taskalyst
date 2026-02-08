@@ -16,7 +16,7 @@ WHERE id = $1 LIMIT 1;
 -- name: UpdateUserPreferences :one
 UPDATE users
 SET
-    preferences = $2,
+    preferences = COALESCE(sqlc.narg('preferences'), preferences),
     updated_at = NOW()
 WHERE id = $1
 RETURNING *;

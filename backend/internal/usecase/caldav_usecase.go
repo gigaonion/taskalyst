@@ -2,14 +2,17 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
 	"github.com/emersion/go-ical"
+	"github.com/gigaonion/taskalyst/backend/internal/infra/db"
 	"github.com/gigaonion/taskalyst/backend/internal/infra/repository"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -29,11 +32,15 @@ type CalDavUsecase interface {
 }
 
 type calDavUsecase struct {
-	repo *repository.Queries
+	repo      *repository.Queries
+	txManager db.TxManager
 }
 
-func NewCalDavUsecase(repo *repository.Queries) CalDavUsecase {
-	return &calDavUsecase{repo: repo}
+func NewCalDavUsecase(repo *repository.Queries, txManager db.TxManager) CalDavUsecase {
+	return &calDavUsecase{
+		repo:      repo,
+		txManager: txManager,
+	}
 }
 
 func (u *calDavUsecase) DeleteResource(ctx context.Context, userID uuid.UUID, icalUID string) error {
@@ -184,113 +191,118 @@ func (u *calDavUsecase) ExportTaskToICal(ctx context.Context, userID uuid.UUID, 
 
 func (u *calDavUsecase) ImportFromICal(ctx context.Context, userID, calendarID uuid.UUID, icalData string) error {
 	dec := ical.NewDecoder(strings.NewReader(icalData))
-	for {
-		cal, err := dec.Decode()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
+
+	// Pre-fetch default project once
+	defaultProject, err := u.repo.GetDefaultProject(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return NewNotFoundError("no project found to import data")
 		}
-
-		for _, event := range cal.Events() {
-			uid, _ := event.Props.Text(ical.PropUID)
-			summary, _ := event.Props.Text(ical.PropSummary)
-			description, _ := event.Props.Text(ical.PropDescription)
-			location, _ := event.Props.Text(ical.PropLocation)
-			start, _ := event.Props.DateTime(ical.PropDateTimeStart, time.UTC)
-			end, _ := event.Props.DateTime(ical.PropDateTimeEnd, time.UTC)
-
-			// Check if exists
-			_, err := u.repo.GetEventByICalUID(ctx, repository.GetEventByICalUIDParams{
-				UserID:  userID,
-				IcalUid: toTextFromStr(uid),
-			})
-
-			if err == nil {
-				// Update
-				_, err = u.repo.UpdateEventByICalUID(ctx, repository.UpdateEventByICalUIDParams{
-					UserID:      userID,
-					IcalUid:     toTextFromStr(uid),
-					Title:       toTextFromStr(summary),
-					Description: toTextFromStr(description),
-					Location:    toTextFromStr(location),
-					StartAt:     toTimestamp(&start),
-					EndAt:       toTimestamp(&end),
-				})
-			} else {
-				// Create
-				projects, _ := u.repo.ListProjects(ctx, repository.ListProjectsParams{UserID: userID})
-				if len(projects) == 0 {
-					return fmt.Errorf("no project found to import event")
-				}
-				_, err = u.repo.CreateEvent(ctx, repository.CreateEventParams{
-					UserID:      userID,
-					ProjectID:   projects[0].ID,
-					CalendarID:  toUUID(&calendarID),
-					Title:       summary,
-					Description: toTextFromStr(description),
-					Location:    toTextFromStr(location),
-					StartAt:     toTimestamp(&start),
-					EndAt:       toTimestamp(&end),
-					IsAllDay:    false,
-					IcalUid:     toTextFromStr(uid),
-					Status:      toTextFromStr("CONFIRMED"),
-				})
-			}
-			if err != nil {
-				return err
-			}
-		}
-
-		for _, child := range cal.Children {
-			if child.Name != ical.CompToDo {
-				continue
-			}
-			uid, _ := child.Props.Text(ical.PropUID)
-			summary, _ := child.Props.Text(ical.PropSummary)
-			description, _ := child.Props.Text(ical.PropDescription)
-			due, _ := child.Props.DateTime(ical.PropDue, time.UTC)
-			status, _ := child.Props.Text(ical.PropStatus)
-
-			_, err := u.repo.GetTaskByICalUID(ctx, repository.GetTaskByICalUIDParams{
-				UserID:  userID,
-				IcalUid: toTextFromStr(uid),
-			})
-
-			if err == nil {
-				// Update
-				_, err = u.repo.UpdateTaskByICalUID(ctx, repository.UpdateTaskByICalUIDParams{
-					UserID:       userID,
-					IcalUid:      toTextFromStr(uid),
-					Title:        toTextFromStr(summary),
-					NoteMarkdown: toTextFromStr(description),
-					DueDate:      toTimestamp(&due),
-					Status:       repository.NullTaskStatus{TaskStatus: icalStatusToTaskStatus(status), Valid: true},
-				})
-			} else {
-				// Create
-				projects, _ := u.repo.ListProjects(ctx, repository.ListProjectsParams{UserID: userID})
-				if len(projects) == 0 {
-					return fmt.Errorf("no project found to import task")
-				}
-				_, err = u.repo.CreateTask(ctx, repository.CreateTaskParams{
-					UserID:       userID,
-					ProjectID:    projects[0].ID,
-					Title:        summary,
-					NoteMarkdown: toTextFromStr(description),
-					DueDate:      toTimestamp(&due),
-					Priority:     pgtype.Int2{Int16: 0, Valid: true},
-					CalendarID:   toUUID(&calendarID),
-					IcalUid:      toTextFromStr(uid),
-					Status:       icalStatusToTaskStatus(status),
-				})
-			}
-			if err != nil {
-				return err
-			}
-		}
+		return fmt.Errorf("failed to get default project: %w", err)
 	}
-	return nil
+	defaultProjectID := defaultProject.ID
+
+	return u.txManager.ReadCommitted(ctx, func(q *repository.Queries) error {
+		for {
+			cal, err := dec.Decode()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return err
+			}
+
+			for _, event := range cal.Events() {
+				uid, _ := event.Props.Text(ical.PropUID)
+				summary, _ := event.Props.Text(ical.PropSummary)
+				description, _ := event.Props.Text(ical.PropDescription)
+				location, _ := event.Props.Text(ical.PropLocation)
+				start, _ := event.Props.DateTime(ical.PropDateTimeStart, time.UTC)
+				end, _ := event.Props.DateTime(ical.PropDateTimeEnd, time.UTC)
+
+				// Check if exists
+				_, err := q.GetEventByICalUID(ctx, repository.GetEventByICalUIDParams{
+					UserID:  userID,
+					IcalUid: toTextFromStr(uid),
+				})
+
+				if err == nil {
+					// Update
+					_, err = q.UpdateEventByICalUID(ctx, repository.UpdateEventByICalUIDParams{
+						UserID:      userID,
+						IcalUid:     toTextFromStr(uid),
+						Title:       toTextFromStr(summary),
+						Description: toTextFromStr(description),
+						Location:    toTextFromStr(location),
+						StartAt:     toTimestamp(&start),
+						EndAt:       toTimestamp(&end),
+					})
+				} else {
+					// Create
+					_, err = q.CreateEvent(ctx, repository.CreateEventParams{
+						UserID:      userID,
+						ProjectID:   defaultProjectID,
+						CalendarID:  toUUID(&calendarID),
+						Title:       summary,
+						Description: toTextFromStr(description),
+						Location:    toTextFromStr(location),
+						StartAt:     toTimestamp(&start),
+						EndAt:       toTimestamp(&end),
+						IsAllDay:    false,
+						IcalUid:     toTextFromStr(uid),
+						Status:      toTextFromStr("CONFIRMED"),
+					})
+				}
+				if err != nil {
+					return err
+				}
+			}
+
+			for _, child := range cal.Children {
+				if child.Name != ical.CompToDo {
+					continue
+				}
+				uid, _ := child.Props.Text(ical.PropUID)
+				summary, _ := child.Props.Text(ical.PropSummary)
+				description, _ := child.Props.Text(ical.PropDescription)
+				due, _ := child.Props.DateTime(ical.PropDue, time.UTC)
+				status, _ := child.Props.Text(ical.PropStatus)
+
+				_, err := q.GetTaskByICalUID(ctx, repository.GetTaskByICalUIDParams{
+					UserID:  userID,
+					IcalUid: toTextFromStr(uid),
+				})
+
+				if err == nil {
+					// Update
+					_, err = q.UpdateTaskByICalUID(ctx, repository.UpdateTaskByICalUIDParams{
+						UserID:       userID,
+						IcalUid:      toTextFromStr(uid),
+						Title:        toTextFromStr(summary),
+						NoteMarkdown: toTextFromStr(description),
+						DueDate:      toTimestamp(&due),
+						Status:       repository.NullTaskStatus{TaskStatus: icalStatusToTaskStatus(status), Valid: true},
+					})
+				} else {
+					// Create
+					_, err = q.CreateTask(ctx, repository.CreateTaskParams{
+						UserID:       userID,
+						ProjectID:    defaultProjectID,
+						Title:        summary,
+						NoteMarkdown: toTextFromStr(description),
+						DueDate:      toTimestamp(&due),
+						Priority:     pgtype.Int2{Int16: 0, Valid: true},
+						CalendarID:   toUUID(&calendarID),
+						IcalUid:      toTextFromStr(uid),
+						Status:       icalStatusToTaskStatus(status),
+					})
+				}
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }
 
 func eventToVEvent(e *repository.ScheduledEvent) *ical.Event {

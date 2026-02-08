@@ -21,23 +21,29 @@ func NewTxManager(pool *pgxpool.Pool) TxManager {
 	return &txManager{pool: pool}
 }
 
-func (tm *txManager) ReadCommitted(ctx context.Context, fn func(q *repository.Queries) error) error {
-	tx, err := tm.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+func (tm *txManager) ReadCommitted(ctx context.Context, fn func(q *repository.Queries) error) (err error) {
+	tx, txErr := tm.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if txErr != nil {
+		return fmt.Errorf("failed to begin transaction: %w", txErr)
 	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback(ctx)
+			panic(p) // re-throw panic after rollback
+		} else if err != nil {
+			_ = tx.Rollback(ctx)
+		}
+	}()
 
 	// fn実行用に新しいQueriesインスタンスを作成
 	q := repository.New(tx)
 
-	if err := fn(q); err != nil {
-		if rbErr := tx.Rollback(ctx); rbErr != nil {
-			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
-		}
+	if err = fn(q); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 

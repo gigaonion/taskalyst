@@ -73,8 +73,8 @@ const listResults = `-- name: ListResults :many
 SELECT 
     r.id, r.user_id, r.project_id, r.target_task_id, r.type, r.value, r.recorded_at, r.note, 
     p.title as project_title, 
-    p.color as project_color, 
-    t.title as task_title
+    COALESCE(p.color, '#808080')::varchar as project_color, 
+    COALESCE(t.title, '')::varchar as task_title
 FROM results r
 JOIN projects p ON r.project_id = p.id
 LEFT JOIN tasks t ON r.target_task_id = t.id
@@ -103,8 +103,8 @@ type ListResultsRow struct {
 	RecordedAt   pgtype.Timestamptz `json:"recorded_at"`
 	Note         pgtype.Text        `json:"note"`
 	ProjectTitle string             `json:"project_title"`
-	ProjectColor pgtype.Text        `json:"project_color"`
-	TaskTitle    pgtype.Text        `json:"task_title"`
+	ProjectColor string             `json:"project_color"`
+	TaskTitle    string             `json:"task_title"`
 }
 
 func (q *Queries) ListResults(ctx context.Context, arg ListResultsParams) ([]ListResultsRow, error) {

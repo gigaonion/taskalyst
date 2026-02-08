@@ -80,13 +80,13 @@ func toResultListResponse(r repository.ListResultsRow) ResultResponse {
 		RecordedAt:   r.RecordedAt.Time.Format(time.RFC3339),
 		Note:         r.Note.String,
 		ProjectTitle: r.ProjectTitle,
-		ProjectColor: r.ProjectColor.String,
-		TaskTitle:    r.TaskTitle.String,
+		ProjectColor: r.ProjectColor,
+		TaskTitle:    r.TaskTitle,
 	}
 }
 
 func (h *ResultHandler) Create(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
 	var req CreateResultRequest
 	if err := c.Bind(&req); err != nil {
@@ -118,28 +118,17 @@ func (h *ResultHandler) Create(c echo.Context) error {
 
 	result, err := h.u.CreateResult(c.Request().Context(), userID, pID, tID, req.Type, req.Value, recordedAt, req.Note)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.JSON(http.StatusCreated, toResultResponse(result))
 }
 
 func (h *ResultHandler) List(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 
-	to := time.Now()
-	from := to.AddDate(0, -1, 0)
-
-	if f := c.QueryParam("from"); f != "" {
-		if t, err := time.Parse("2006-01-02", f); err == nil {
-			from = t
-		}
-	}
-	if t := c.QueryParam("to"); t != "" {
-		if tm, err := time.Parse("2006-01-02", t); err == nil {
-			to = tm
-		}
-	}
+	to := parseDateQuery(c, "to", time.Now())
+	from := parseDateQuery(c, "from", to.AddDate(0, -1, 0))
 
 	var pID *uuid.UUID
 	if pid := c.QueryParam("project_id"); pid != "" {
@@ -151,7 +140,7 @@ func (h *ResultHandler) List(c echo.Context) error {
 
 	rows, err := h.u.ListResults(c.Request().Context(), userID, pID, from, to)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	res := make([]ResultResponse, len(rows))
@@ -163,14 +152,14 @@ func (h *ResultHandler) List(c echo.Context) error {
 }
 
 func (h *ResultHandler) Delete(c echo.Context) error {
-	userID := c.Get("user_id").(uuid.UUID)
+	userID := getUserID(c)
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid id")
 	}
 
 	if err := h.u.DeleteResult(c.Request().Context(), userID, id); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return HandleError(c, err)
 	}
 
 	return c.NoContent(http.StatusNoContent)

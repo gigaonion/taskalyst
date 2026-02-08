@@ -10,6 +10,12 @@ SELECT * FROM calendars
 WHERE user_id = $1
 ORDER BY created_at;
 
+-- name: GetDefaultCalendar :one
+SELECT * FROM calendars
+WHERE user_id = $1
+ORDER BY created_at
+LIMIT 1;
+
 -- name: CreateEvent :one
 INSERT INTO scheduled_events (
     user_id, project_id, calendar_id,
@@ -44,11 +50,18 @@ INSERT INTO timetable_slots (
 ) RETURNING *;
 
 -- name: ListTimetableSlots :many
-SELECT ts.*, p.title as project_title, p.color as project_color
+SELECT ts.*, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
 FROM timetable_slots ts
 JOIN projects p ON ts.project_id = p.id
 WHERE ts.user_id = $1
 ORDER BY ts.day_of_week, ts.start_time;
+
+-- name: ListTimetableSlotsByDayOfWeek :many
+SELECT ts.*, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
+FROM timetable_slots ts
+JOIN projects p ON ts.project_id = p.id
+WHERE ts.user_id = $1 AND ts.day_of_week = $2
+ORDER BY ts.start_time;
 
 -- name: ListEventsByCalendar :many
 SELECT * FROM scheduled_events

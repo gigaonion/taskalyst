@@ -92,7 +92,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 const updateUserPreferences = `-- name: UpdateUserPreferences :one
 UPDATE users
 SET
-    preferences = $2,
+    preferences = COALESCE($2, preferences),
     updated_at = NOW()
 WHERE id = $1
 RETURNING id, email, password_hash, name, role, preferences, created_at, updated_at

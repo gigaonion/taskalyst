@@ -103,7 +103,7 @@ func (q *Queries) GetGrowthStats(ctx context.Context, arg GetGrowthStatsParams) 
 }
 
 const getRunningTimeEntries = `-- name: GetRunningTimeEntries :many
-SELECT t.id, t.user_id, t.project_id, t.task_id, t.started_at, t.ended_at, t.note, t.is_auto_generated, t.created_at, t.updated_at, p.title as project_title, p.color as project_color
+SELECT t.id, t.user_id, t.project_id, t.task_id, t.started_at, t.ended_at, t.note, t.is_auto_generated, t.created_at, t.updated_at, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
 FROM time_entries t
 JOIN projects p ON t.project_id = p.id
 WHERE t.user_id = $1 AND t.ended_at IS NULL
@@ -122,7 +122,7 @@ type GetRunningTimeEntriesRow struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	ProjectTitle    string             `json:"project_title"`
-	ProjectColor    pgtype.Text        `json:"project_color"`
+	ProjectColor    string             `json:"project_color"`
 }
 
 // 計測中のエントリ
@@ -160,7 +160,7 @@ func (q *Queries) GetRunningTimeEntries(ctx context.Context, userID uuid.UUID) (
 }
 
 const listTimeEntries = `-- name: ListTimeEntries :many
-SELECT t.id, t.user_id, t.project_id, t.task_id, t.started_at, t.ended_at, t.note, t.is_auto_generated, t.created_at, t.updated_at, p.title as project_title, p.color as project_color
+SELECT t.id, t.user_id, t.project_id, t.task_id, t.started_at, t.ended_at, t.note, t.is_auto_generated, t.created_at, t.updated_at, p.title as project_title, COALESCE(p.color, '#808080')::varchar as project_color
 FROM time_entries t
 JOIN projects p ON t.project_id = p.id
 WHERE 
@@ -188,7 +188,7 @@ type ListTimeEntriesRow struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	ProjectTitle    string             `json:"project_title"`
-	ProjectColor    pgtype.Text        `json:"project_color"`
+	ProjectColor    string             `json:"project_color"`
 }
 
 func (q *Queries) ListTimeEntries(ctx context.Context, arg ListTimeEntriesParams) ([]ListTimeEntriesRow, error) {
@@ -262,7 +262,8 @@ SET
     task_id = COALESCE($4, task_id),
     started_at = COALESCE($5, started_at),
     ended_at = COALESCE($6, ended_at),
-    note = COALESCE($7, note)
+    note = COALESCE($7, note),
+    updated_at = NOW()
 WHERE id = $1 AND user_id = $2
 RETURNING id, user_id, project_id, task_id, started_at, ended_at, note, is_auto_generated, created_at, updated_at
 `

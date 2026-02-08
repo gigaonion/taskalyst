@@ -85,6 +85,30 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 	return i, err
 }
 
+const getDefaultProject = `-- name: GetDefaultProject :one
+SELECT id, user_id, category_id, title, description, color, is_archived, created_at, updated_at FROM projects
+WHERE user_id = $1
+ORDER BY created_at ASC
+LIMIT 1
+`
+
+func (q *Queries) GetDefaultProject(ctx context.Context, userID uuid.UUID) (Project, error) {
+	row := q.db.QueryRow(ctx, getDefaultProject, userID)
+	var i Project
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Title,
+		&i.Description,
+		&i.Color,
+		&i.IsArchived,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getProject = `-- name: GetProject :one
 SELECT id, user_id, category_id, title, description, color, is_archived, created_at, updated_at FROM projects
 WHERE id = $1 AND user_id = $2 LIMIT 1
@@ -146,7 +170,12 @@ func (q *Queries) ListCategories(ctx context.Context, userID uuid.UUID) ([]Categ
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT p.id, p.user_id, p.category_id, p.title, p.description, p.color, p.is_archived, p.created_at, p.updated_at, c.name as category_name, c.root_type, c.color
+SELECT 
+    p.id, p.user_id, p.category_id, p.title, p.description, 
+    COALESCE(p.color, '#808080')::varchar as color, 
+    p.is_archived, p.created_at, p.updated_at, 
+    c.name as category_name, c.root_type, 
+    COALESCE(c.color, '#808080')::varchar as category_color
 FROM projects p
 JOIN categories c ON p.category_id = c.id
 WHERE
@@ -161,18 +190,18 @@ type ListProjectsParams struct {
 }
 
 type ListProjectsRow struct {
-	ID           uuid.UUID          `json:"id"`
-	UserID       uuid.UUID          `json:"user_id"`
-	CategoryID   uuid.UUID          `json:"category_id"`
-	Title        string             `json:"title"`
-	Description  pgtype.Text        `json:"description"`
-	Color        pgtype.Text        `json:"color"`
-	IsArchived   bool               `json:"is_archived"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	CategoryName string             `json:"category_name"`
-	RootType     RootCategoryType   `json:"root_type"`
-	Color_2      pgtype.Text        `json:"color_2"`
+	ID            uuid.UUID          `json:"id"`
+	UserID        uuid.UUID          `json:"user_id"`
+	CategoryID    uuid.UUID          `json:"category_id"`
+	Title         string             `json:"title"`
+	Description   pgtype.Text        `json:"description"`
+	Color         string             `json:"color"`
+	IsArchived    bool               `json:"is_archived"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	CategoryName  string             `json:"category_name"`
+	RootType      RootCategoryType   `json:"root_type"`
+	CategoryColor string             `json:"category_color"`
 }
 
 func (q *Queries) ListProjects(ctx context.Context, arg ListProjectsParams) ([]ListProjectsRow, error) {
@@ -196,7 +225,7 @@ func (q *Queries) ListProjects(ctx context.Context, arg ListProjectsParams) ([]L
 			&i.UpdatedAt,
 			&i.CategoryName,
 			&i.RootType,
-			&i.Color_2,
+			&i.CategoryColor,
 		); err != nil {
 			return nil, err
 		}
